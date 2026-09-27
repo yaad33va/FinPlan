@@ -1,0 +1,899 @@
+openapi: 3.0.3
+info:
+  title: FinPlan API
+  version: 1.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  description: |
+    REST API for personal finance planning.
+
+    Resource hierarchy (one-to-many chain): **Category → Budget → Transaction**.
+    A category (income or expense) has monthly budgets; every budget has transactions dated within its month.
+
+    * All responses are `application/json`.
+    * Lists are paginated (`page`, `per_page`) and return `links` + `meta`.
+    * Every resource contains hypermedia `_links` (self, update, delete, parent, children).
+    * `PUT` replaces a resource (omitted optional fields become `null`), `PATCH` updates only the sent fields.
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local development
+
+# Lab 1 has no authentication; JWT bearer auth is added in lab 2.
+security: []
+
+tags:
+  - name: Root
+    description: API entry point.
+  - name: Categories
+    description: Income and expense categories (top of the hierarchy).
+  - name: Budgets
+    description: Monthly budgets of a category.
+  - name: Transactions
+    description: Income/expense transactions recorded under a budget.
+  - name: Dashboard
+    description: Aggregated monthly overview.
+
+paths:
+  /:
+    get:
+      tags: [Root]
+      summary: API entry point
+      description: Returns links to the top-level resources.
+      operationId: getApiRoot
+      responses:
+        '200':
+          description: Entry point links
+          content:
+            application/json:
+              example:
+                name: FinPlan API
+                version: v1
+                _links:
+                  self: { href: http://localhost:8000/api/v1, method: GET }
+                  categories: { href: http://localhost:8000/api/v1/categories, method: GET }
+                  create_category: { href: http://localhost:8000/api/v1/categories, method: POST }
+                  dashboard: { href: http://localhost:8000/api/v1/dashboard, method: GET }
+                  documentation: { href: http://localhost:8000/docs, method: GET }
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: List categories
+      operationId: listCategories
+      parameters:
+        - name: type
+          in: query
+          description: Filter by category type.
+          schema: { $ref: '#/components/schemas/CategoryType' }
+        - name: search
+          in: query
+          description: Case-insensitive substring of the category name.
+          schema: { type: string, maxLength: 100 }
+          example: Maist
+        - name: sort
+          in: query
+          schema: { type: string, enum: [name, -name, created_at, -created_at], default: name }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated list of categories
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Category' }
+              example:
+                data:
+                  - id: 3
+                    name: Maistas ir buities prekės
+                    type: expense
+                    description: Pirkiniai prekybos centruose, turguje ir buitinės chemijos prekės.
+                    color: '#EF6C00'
+                    budgets_count: 3
+                    created_at: '2026-09-25T16:49:39+00:00'
+                    updated_at: '2026-09-25T16:49:39+00:00'
+                    _links:
+                      self: { href: http://localhost:8000/api/v1/categories/3, method: GET }
+                      update: { href: http://localhost:8000/api/v1/categories/3, method: PUT }
+                      delete: { href: http://localhost:8000/api/v1/categories/3, method: DELETE }
+                      budgets: { href: http://localhost:8000/api/v1/categories/3/budgets, method: GET }
+                      create_budget: { href: http://localhost:8000/api/v1/categories/3/budgets, method: POST }
+                      transactions: { href: http://localhost:8000/api/v1/categories/3/transactions, method: GET }
+                      collection: { href: http://localhost:8000/api/v1/categories, method: GET }
+                links:
+                  first: http://localhost:8000/api/v1/categories?type=expense&per_page=1&page=1
+                  last: http://localhost:8000/api/v1/categories?type=expense&per_page=1&page=5
+                  prev: null
+                  next: http://localhost:8000/api/v1/categories?type=expense&per_page=1&page=2
+                meta:
+                  current_page: 1
+                  from: 1
+                  last_page: 5
+                  per_page: 1
+                  to: 1
+                  total: 5
+                  path: http://localhost:8000/api/v1/categories
+                _links:
+                  create: { href: http://localhost:8000/api/v1/categories, method: POST }
+                  dashboard: { href: http://localhost:8000/api/v1/dashboard, method: GET }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    post:
+      tags: [Categories]
+      summary: Create a category
+      operationId: createCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryInput' }
+            example:
+              name: Kelionės
+              type: expense
+              description: Atostogų kelionės ir savaitgalio išvykos.
+              color: '#00ACC1'
+      responses:
+        '201':
+          description: Category created
+          headers:
+            Location:
+              description: URL of the new category
+              schema: { type: string, format: uri }
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Category' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
+              example:
+                message: The name field is required. (and 2 more errors)
+                errors:
+                  name: [The name field is required.]
+                  type: [The selected type is invalid.]
+                  color: ['The color must be a hex color code, e.g. #FF8800.']
+
+  /categories/{categoryId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+    get:
+      tags: [Categories]
+      summary: Get a category
+      operationId: getCategory
+      responses:
+        '200':
+          description: The category
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Category' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Categories]
+      summary: Replace a category
+      description: All required fields must be sent; omitted optional fields (`description`, `color`) are cleared.
+      operationId: replaceCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryInput' }
+            example:
+              name: Kelionės ir atostogos
+              type: expense
+              description: Lėktuvo bilietai, apgyvendinimas ir ekskursijos.
+              color: '#0097A7'
+      responses:
+        '200':
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Category' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    patch:
+      tags: [Categories]
+      summary: Partially update a category
+      operationId: updateCategory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CategoryPatch' }
+            example:
+              color: '#123456'
+      responses:
+        '200':
+          description: Updated category
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Category' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Categories]
+      summary: Delete a category
+      description: Also deletes the category's budgets and their transactions.
+      operationId: deleteCategory
+      responses:
+        '204': { description: Category deleted (no body) }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /categories/{categoryId}/transactions:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+    get:
+      tags: [Transactions]
+      summary: List all transactions of a category (across all its budgets)
+      operationId: listCategoryTransactions
+      parameters:
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - $ref: '#/components/parameters/MinAmount'
+        - $ref: '#/components/parameters/MaxAmount'
+        - $ref: '#/components/parameters/PaymentMethodFilter'
+        - $ref: '#/components/parameters/TransactionSearch'
+        - $ref: '#/components/parameters/TransactionSort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200': { $ref: '#/components/responses/TransactionList' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /categories/{categoryId}/budgets:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+    get:
+      tags: [Budgets]
+      summary: List budgets of a category
+      operationId: listBudgets
+      parameters:
+        - name: month
+          in: query
+          schema: { type: string, pattern: '^\d{4}-\d{2}$' }
+          example: '2026-09'
+        - name: month_from
+          in: query
+          schema: { type: string, pattern: '^\d{4}-\d{2}$' }
+          example: '2026-07'
+        - name: month_to
+          in: query
+          description: Must be equal to or after `month_from`.
+          schema: { type: string, pattern: '^\d{4}-\d{2}$' }
+          example: '2026-09'
+        - name: exceeded
+          in: query
+          description: '`true` returns only budgets where spent > amount, `false` only the rest.'
+          schema: { type: string, enum: ['true', 'false', '1', '0'] }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [month, -month, amount, -amount], default: -month }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated list of budgets
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Budget' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    post:
+      tags: [Budgets]
+      summary: Create a budget for a category
+      description: A category can have only one budget per month.
+      operationId: createBudget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BudgetInput' }
+            example:
+              month: '2026-10'
+              amount: 500
+              note: Rudens atostogos Palangoje.
+      responses:
+        '201':
+          description: Budget created
+          headers:
+            Location:
+              schema: { type: string, format: uri }
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Budget' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: Validation failed (e.g. duplicate month)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
+              example:
+                message: This category already has a budget for the given month.
+                errors:
+                  month: [This category already has a budget for the given month.]
+
+  /categories/{categoryId}/budgets/{budgetId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+      - $ref: '#/components/parameters/BudgetId'
+    get:
+      tags: [Budgets]
+      summary: Get a budget (with spent and remaining amounts)
+      description: Returns 404 if the budget does not belong to the given category.
+      operationId: getBudget
+      responses:
+        '200':
+          description: The budget
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Budget' }
+              example:
+                data:
+                  id: 17
+                  category_id: 6
+                  month: '2026-08'
+                  amount: 120
+                  spent: 136.12
+                  remaining: -16.12
+                  usage_percent: 113.4
+                  is_exceeded: true
+                  note: Rugpjūtis – pasiruošimas rudeniui.
+                  created_at: '2026-09-25T16:49:39+00:00'
+                  updated_at: '2026-09-25T16:49:39+00:00'
+                  _links:
+                    self: { href: http://localhost:8000/api/v1/categories/6/budgets/17, method: GET }
+                    update: { href: http://localhost:8000/api/v1/categories/6/budgets/17, method: PUT }
+                    delete: { href: http://localhost:8000/api/v1/categories/6/budgets/17, method: DELETE }
+                    category: { href: http://localhost:8000/api/v1/categories/6, method: GET }
+                    transactions: { href: http://localhost:8000/api/v1/categories/6/budgets/17/transactions, method: GET }
+                    create_transaction: { href: http://localhost:8000/api/v1/categories/6/budgets/17/transactions, method: POST }
+                    collection: { href: http://localhost:8000/api/v1/categories/6/budgets, method: GET }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Budgets]
+      summary: Replace a budget
+      operationId: replaceBudget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BudgetInput' }
+            example:
+              month: '2026-10'
+              amount: 600
+              note: Padidintas biudžetas.
+      responses:
+        '200':
+          description: Updated budget
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Budget' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    patch:
+      tags: [Budgets]
+      summary: Partially update a budget
+      description: The month cannot be changed if the budget already has transactions (422).
+      operationId: updateBudget
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BudgetPatch' }
+            example:
+              amount: 650.5
+      responses:
+        '200':
+          description: Updated budget
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Budget' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Budgets]
+      summary: Delete a budget
+      description: Also deletes the budget's transactions.
+      operationId: deleteBudget
+      responses:
+        '204': { description: Budget deleted (no body) }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /categories/{categoryId}/budgets/{budgetId}/transactions:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+      - $ref: '#/components/parameters/BudgetId'
+    get:
+      tags: [Transactions]
+      summary: List transactions of a budget
+      description: Hierarchical endpoint spanning all three resources (category → budget → transactions).
+      operationId: listTransactions
+      parameters:
+        - $ref: '#/components/parameters/DateFrom'
+        - $ref: '#/components/parameters/DateTo'
+        - $ref: '#/components/parameters/MinAmount'
+        - $ref: '#/components/parameters/MaxAmount'
+        - $ref: '#/components/parameters/PaymentMethodFilter'
+        - $ref: '#/components/parameters/TransactionSearch'
+        - $ref: '#/components/parameters/TransactionSort'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200': { $ref: '#/components/responses/TransactionList' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    post:
+      tags: [Transactions]
+      summary: Create a transaction
+      description: '`occurred_on` must be within the budget month.'
+      operationId: createTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransactionInput' }
+            example:
+              amount: 189.99
+              occurred_on: '2026-10-03'
+              description: Viešbutis Palangoje (2 naktys)
+              merchant: Booking.com
+              payment_method: card
+      responses:
+        '201':
+          description: Transaction created
+          headers:
+            Location:
+              schema: { type: string, format: uri }
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Transaction' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
+              example:
+                message: The occurred on date must be within the budget month (2026-10).
+                errors:
+                  occurred_on: [The occurred on date must be within the budget month (2026-10).]
+
+  /categories/{categoryId}/budgets/{budgetId}/transactions/{transactionId}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryId'
+      - $ref: '#/components/parameters/BudgetId'
+      - $ref: '#/components/parameters/TransactionId'
+    get:
+      tags: [Transactions]
+      summary: Get a transaction
+      operationId: getTransaction
+      responses:
+        '200':
+          description: The transaction
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Transaction' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    put:
+      tags: [Transactions]
+      summary: Replace a transaction
+      operationId: replaceTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransactionInput' }
+            example:
+              amount: 210
+              occurred_on: '2026-10-04'
+              description: Viešbutis Palangoje (2 naktys, su pusryčiais)
+              merchant: Booking.com
+              payment_method: card
+      responses:
+        '200':
+          description: Updated transaction
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Transaction' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    patch:
+      tags: [Transactions]
+      summary: Partially update a transaction
+      operationId: updateTransaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransactionPatch' }
+            example:
+              amount: 42
+      responses:
+        '200':
+          description: Updated transaction
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Transaction' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Transactions]
+      summary: Delete a transaction
+      operationId: deleteTransaction
+      responses:
+        '204': { description: Transaction deleted (no body) }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /dashboard:
+    get:
+      tags: [Dashboard]
+      summary: Monthly overview
+      description: Aggregated resource built from categories, budgets and transactions of one month.
+      operationId: getDashboard
+      parameters:
+        - name: month
+          in: query
+          description: Month in YYYY-MM format. Defaults to the current month.
+          schema: { type: string, pattern: '^\d{4}-\d{2}$' }
+          example: '2026-08'
+      responses:
+        '200':
+          description: Dashboard
+          content:
+            application/json:
+              example:
+                data:
+                  month: '2026-08'
+                  summary:
+                    income: { budgeted: 2100, actual: 2082.75 }
+                    expenses: { budgeted: 1430, actual: 1125.21, remaining: 304.79 }
+                    net_balance: 957.54
+                    categories_count: 7
+                    budgets_count: 7
+                    exceeded_budgets_count: 1
+                  budgets:
+                    - budget_id: 17
+                      category: { id: 6, name: Pramogos ir laisvalaikis, type: expense, color: '#8E24AA' }
+                      amount: 120
+                      spent: 136.12
+                      remaining: -16.12
+                      usage_percent: 113.4
+                      _links:
+                        budget: { href: http://localhost:8000/api/v1/categories/6/budgets/17, method: GET }
+                        transactions: { href: http://localhost:8000/api/v1/categories/6/budgets/17/transactions, method: GET }
+                  recent_transactions: []
+                _links:
+                  self: { href: http://localhost:8000/api/v1/dashboard?month=2026-08, method: GET }
+                  previous_month: { href: http://localhost:8000/api/v1/dashboard?month=2026-07, method: GET }
+                  next_month: { href: http://localhost:8000/api/v1/dashboard?month=2026-09, method: GET }
+                  categories: { href: http://localhost:8000/api/v1/categories, method: GET }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+components:
+  parameters:
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+      example: 3
+    BudgetId:
+      name: budgetId
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+      example: 9
+    TransactionId:
+      name: transactionId
+      in: path
+      required: true
+      schema: { type: integer, minimum: 1 }
+      example: 30
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PerPage:
+      name: per_page
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+    DateFrom:
+      name: date_from
+      in: query
+      schema: { type: string, format: date }
+      example: '2026-09-01'
+    DateTo:
+      name: date_to
+      in: query
+      description: Must be equal to or after `date_from`.
+      schema: { type: string, format: date }
+      example: '2026-09-15'
+    MinAmount:
+      name: min_amount
+      in: query
+      schema: { type: number, minimum: 0 }
+      example: 20
+    MaxAmount:
+      name: max_amount
+      in: query
+      description: Must be greater than or equal to `min_amount`.
+      schema: { type: number, minimum: 0 }
+      example: 80
+    PaymentMethodFilter:
+      name: payment_method
+      in: query
+      schema: { $ref: '#/components/schemas/PaymentMethod' }
+    TransactionSearch:
+      name: search
+      in: query
+      description: Substring of the description or merchant.
+      schema: { type: string, maxLength: 100 }
+      example: Maxima
+    TransactionSort:
+      name: sort
+      in: query
+      schema: { type: string, enum: [occurred_on, -occurred_on, amount, -amount], default: -occurred_on }
+
+  responses:
+    NotFound:
+      description: Resource not found (or does not belong to the parent resource in the URL)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            message: Category with ID 999 was not found.
+    BadRequest:
+      description: Malformed JSON body
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example:
+            message: 'Malformed JSON body: Syntax error.'
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ValidationError' }
+          example:
+            message: The per page field must not be greater than 100.
+            errors:
+              per_page: [The per page field must not be greater than 100.]
+    TransactionList:
+      description: Paginated list of transactions
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/PaginatedResponse'
+              - type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Transaction' }
+          example:
+            data:
+              - id: 30
+                budget_id: 9
+                category_id: 3
+                amount: 64.04
+                occurred_on: '2026-09-16'
+                description: Savaitės maisto pirkiniai
+                merchant: Rimi
+                payment_method: card
+                created_at: '2026-09-25T16:49:40+00:00'
+                updated_at: '2026-09-25T16:49:40+00:00'
+                _links:
+                  self: { href: http://localhost:8000/api/v1/categories/3/budgets/9/transactions/30, method: GET }
+                  update: { href: http://localhost:8000/api/v1/categories/3/budgets/9/transactions/30, method: PUT }
+                  delete: { href: http://localhost:8000/api/v1/categories/3/budgets/9/transactions/30, method: DELETE }
+                  budget: { href: http://localhost:8000/api/v1/categories/3/budgets/9, method: GET }
+                  category: { href: http://localhost:8000/api/v1/categories/3, method: GET }
+                  collection: { href: http://localhost:8000/api/v1/categories/3/budgets/9/transactions, method: GET }
+            links:
+              first: http://localhost:8000/api/v1/categories/3/budgets/9/transactions?page=1
+              last: http://localhost:8000/api/v1/categories/3/budgets/9/transactions?page=1
+              prev: null
+              next: null
+            meta: { current_page: 1, from: 1, last_page: 1, per_page: 10, to: 1, total: 1, path: http://localhost:8000/api/v1/categories/3/budgets/9/transactions }
+
+  schemas:
+    CategoryType:
+      type: string
+      enum: [income, expense]
+    PaymentMethod:
+      type: string
+      enum: [card, cash, bank_transfer]
+    Link:
+      type: object
+      properties:
+        href: { type: string, format: uri }
+        method: { type: string, enum: [GET, POST, PUT, PATCH, DELETE] }
+    Links:
+      type: object
+      additionalProperties: { $ref: '#/components/schemas/Link' }
+
+    Category:
+      type: object
+      properties:
+        id: { type: integer, example: 3 }
+        name: { type: string, example: Maistas ir buities prekės }
+        type: { $ref: '#/components/schemas/CategoryType' }
+        description: { type: string, nullable: true }
+        color: { type: string, nullable: true, example: '#EF6C00' }
+        budgets_count: { type: integer, example: 3 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        _links: { $ref: '#/components/schemas/Links' }
+    CategoryInput:
+      type: object
+      required: [name, type]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        type: { $ref: '#/components/schemas/CategoryType' }
+        description: { type: string, maxLength: 1000, nullable: true }
+        color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$', nullable: true }
+    CategoryPatch:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        type: { $ref: '#/components/schemas/CategoryType' }
+        description: { type: string, maxLength: 1000, nullable: true }
+        color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$', nullable: true }
+
+    Budget:
+      type: object
+      properties:
+        id: { type: integer, example: 9 }
+        category_id: { type: integer, example: 3 }
+        month: { type: string, example: '2026-09' }
+        amount: { type: number, example: 400 }
+        spent: { type: number, description: Sum of the budget's transactions, example: 261.99 }
+        remaining: { type: number, description: amount − spent (negative when exceeded), example: 138.01 }
+        usage_percent: { type: number, example: 65.5 }
+        is_exceeded: { type: boolean, example: false }
+        note: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        _links: { $ref: '#/components/schemas/Links' }
+    BudgetInput:
+      type: object
+      required: [month, amount]
+      properties:
+        month: { type: string, pattern: '^\d{4}-\d{2}$', example: '2026-10' }
+        amount: { type: number, minimum: 0.01, maximum: 9999999999.99, example: 500 }
+        note: { type: string, maxLength: 255, nullable: true }
+    BudgetPatch:
+      type: object
+      minProperties: 1
+      properties:
+        month: { type: string, pattern: '^\d{4}-\d{2}$' }
+        amount: { type: number, minimum: 0.01, maximum: 9999999999.99 }
+        note: { type: string, maxLength: 255, nullable: true }
+
+    Transaction:
+      type: object
+      properties:
+        id: { type: integer, example: 30 }
+        budget_id: { type: integer, example: 9 }
+        category_id: { type: integer, example: 3 }
+        amount: { type: number, example: 64.04 }
+        occurred_on: { type: string, format: date, example: '2026-09-16' }
+        description: { type: string, example: Savaitės maisto pirkiniai }
+        merchant: { type: string, nullable: true, example: Rimi }
+        payment_method: { $ref: '#/components/schemas/PaymentMethod' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        _links: { $ref: '#/components/schemas/Links' }
+    TransactionInput:
+      type: object
+      required: [amount, occurred_on, description, payment_method]
+      properties:
+        amount: { type: number, minimum: 0.01, maximum: 9999999999.99 }
+        occurred_on: { type: string, format: date, description: Must be within the budget month }
+        description: { type: string, minLength: 2, maxLength: 255 }
+        merchant: { type: string, maxLength: 100, nullable: true }
+        payment_method: { $ref: '#/components/schemas/PaymentMethod' }
+    TransactionPatch:
+      type: object
+      minProperties: 1
+      properties:
+        amount: { type: number, minimum: 0.01, maximum: 9999999999.99 }
+        occurred_on: { type: string, format: date }
+        description: { type: string, minLength: 2, maxLength: 255 }
+        merchant: { type: string, maxLength: 100, nullable: true }
+        payment_method: { $ref: '#/components/schemas/PaymentMethod' }
+
+    PaginatedResponse:
+      type: object
+      properties:
+        links:
+          type: object
+          properties:
+            first: { type: string, format: uri }
+            last: { type: string, format: uri }
+            prev: { type: string, format: uri, nullable: true }
+            next: { type: string, format: uri, nullable: true }
+        meta:
+          type: object
+          properties:
+            current_page: { type: integer }
+            from: { type: integer, nullable: true }
+            last_page: { type: integer }
+            per_page: { type: integer }
+            to: { type: integer, nullable: true }
+            total: { type: integer }
+            path: { type: string, format: uri }
+        _links: { $ref: '#/components/schemas/Links' }
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+    ValidationError:
+      type: object
+      properties:
+        message: { type: string }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
