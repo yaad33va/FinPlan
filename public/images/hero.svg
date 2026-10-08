@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 440" width="560" height="440">
+  <defs>
+    <linearGradient id="hero-blob" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#bbf7d0"/>
+      <stop offset="1" stop-color="#bfdbfe"/>
+    </linearGradient>
+    <linearGradient id="hero-green" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4ade80"/>
+      <stop offset="1" stop-color="#16a34a"/>
+    </linearGradient>
+    <linearGradient id="hero-blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+    <linearGradient id="hero-brand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22c55e"/>
+      <stop offset="1" stop-color="#0d9488"/>
+    </linearGradient>
+    <filter id="hero-shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0f2f56" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <!-- background shape -->
+  <path d="M78 120C110 40 250 10 360 40s190 110 170 210-120 170-250 175S40 360 30 270 46 200 78 120z" fill="url(#hero-blob)" opacity="0.75"/>
+  <circle cx="480" cy="70" r="14" fill="#22c55e" opacity="0.5"/>
+  <circle cx="60" cy="90" r="9" fill="#2563eb" opacity="0.45"/>
+
+  <!-- dashboard window -->
+  <g filter="url(#hero-shadow)">
+    <rect x="70" y="60" width="390" height="280" rx="22" fill="#fff"/>
+  </g>
+  <path d="M92 60h346a22 22 0 0 1 22 22v32H70V82a22 22 0 0 1 22-22z" fill="#0f2f56"/>
+  <circle cx="98" cy="87" r="6" fill="#22c55e"/>
+  <circle cx="118" cy="87" r="6" fill="#86efac"/>
+  <circle cx="138" cy="87" r="6" fill="#60a5fa"/>
+  <rect x="318" y="80" width="118" height="14" rx="7" fill="#16406f"/>
+
+  <!-- summary values -->
+  <rect x="96" y="138" width="90" height="10" rx="5" fill="#dbeafe"/>
+  <rect x="96" y="156" width="120" height="18" rx="6" fill="#0a2240"/>
+  <rect x="236" y="138" width="70" height="10" rx="5" fill="#dcfce7"/>
+  <rect x="236" y="156" width="90" height="18" rx="6" fill="#16a34a"/>
+
+  <!-- bar chart: income (green) and expenses (blue) -->
+  <line x1="96" y1="312" x2="300" y2="312" stroke="#e2e8f0" stroke-width="2"/>
+  <rect x="104" y="222" width="20" height="90" rx="5" fill="url(#hero-green)"/>
+  <rect x="128" y="246" width="20" height="66" rx="5" fill="url(#hero-blue)"/>
+  <rect x="170" y="204" width="20" height="108" rx="5" fill="url(#hero-green)"/>
+  <rect x="194" y="236" width="20" height="76" rx="5" fill="url(#hero-blue)"/>
+  <rect x="236" y="194" width="20" height="118" rx="5" fill="url(#hero-green)"/>
+  <rect x="260" y="252" width="20" height="60" rx="5" fill="url(#hero-blue)"/>
+
+  <!-- donut chart -->
+  <circle cx="384" cy="222" r="46" fill="none" stroke="#e2e8f0" stroke-width="18"/>
+  <circle cx="384" cy="222" r="46" fill="none" stroke="#22c55e" stroke-width="18" stroke-dasharray="174 289" transform="rotate(-90 384 222)"/>
+  <circle cx="384" cy="222" r="46" fill="none" stroke="#2563eb" stroke-width="18" stroke-dasharray="72 289" stroke-dashoffset="-174" transform="rotate(-90 384 222)"/>
+  <circle cx="384" cy="222" r="46" fill="none" stroke="#0d9488" stroke-width="18" stroke-dasharray="30 289" stroke-dashoffset="-246" transform="rotate(-90 384 222)"/>
+  <rect x="350" y="288" width="68" height="9" rx="4.5" fill="#dbeafe"/>
+  <rect x="360" y="304" width="48" height="9" rx="4.5" fill="#dcfce7"/>
+
+  <!-- floating budget card -->
+  <g filter="url(#hero-shadow)">
+    <rect x="320" y="318" width="200" height="94" rx="16" fill="#fff"/>
+  </g>
+  <circle cx="352" cy="350" r="16" fill="#dcfce7"/>
+  <path d="M344 350l6 6 10-11" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="378" y="340" width="104" height="9" rx="4.5" fill="#0f2f56"/>
+  <rect x="378" y="355" width="64" height="8" rx="4" fill="#cbd5e1"/>
+  <rect x="338" y="384" width="164" height="10" rx="5" fill="#e3ecef"/>
+  <rect x="338" y="384" width="112" height="10" rx="5" fill="url(#hero-brand)"/>
+
+  <!-- coins -->
+  <g transform="translate(30 300)">
+    <ellipse cx="44" cy="96" rx="40" ry="12" fill="#0f4d36"/>
+    <rect x="4" y="82" width="80" height="14" fill="#0f4d36"/>
+    <ellipse cx="44" cy="82" rx="40" ry="12" fill="#16a34a"/>
+    <ellipse cx="44" cy="72" rx="40" ry="12" fill="#0f4d36"/>
+    <rect x="4" y="58" width="80" height="14" fill="#0f4d36"/>
+    <ellipse cx="44" cy="58" rx="40" ry="12" fill="#22c55e"/>
+    <ellipse cx="44" cy="48" rx="40" ry="12" fill="#15803d"/>
+    <rect x="4" y="34" width="80" height="14" fill="#15803d"/>
+    <ellipse cx="44" cy="34" rx="40" ry="12" fill="#4ade80"/>
+    <path d="M52 28.5a9 7 0 1 0 0 11M34 32h14M34 36h14" fill="none" stroke="#0f4d36" stroke-width="2.6" stroke-linecap="round"/>
+  </g>
+</svg>

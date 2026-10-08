@@ -12,6 +12,7 @@ use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 class TransactionController extends Controller
 {
@@ -20,6 +21,8 @@ class TransactionController extends Controller
      */
     public function index(TransactionIndexRequest $request, Category $category, Budget $budget): AnonymousResourceCollection
     {
+        Gate::authorize('view', $category);
+
         $filters = $request->validated();
 
         $transactions = $budget->transactions()
@@ -43,6 +46,8 @@ class TransactionController extends Controller
      */
     public function store(TransactionRequest $request, Category $category, Budget $budget): JsonResponse
     {
+        Gate::authorize('update', $category);
+
         $transaction = $budget->transactions()->create($request->payload());
         $transaction->setRelation('budget', $budget);
 
@@ -57,6 +62,8 @@ class TransactionController extends Controller
      */
     public function show(Category $category, Budget $budget, Transaction $transaction): TransactionResource
     {
+        Gate::authorize('view', $category);
+
         return new TransactionResource($transaction->setRelation('budget', $budget));
     }
 
@@ -65,6 +72,8 @@ class TransactionController extends Controller
      */
     public function update(TransactionRequest $request, Category $category, Budget $budget, Transaction $transaction): TransactionResource
     {
+        Gate::authorize('update', $category);
+
         $transaction->update($request->payload());
 
         return new TransactionResource($transaction->setRelation('budget', $budget));
@@ -75,6 +84,8 @@ class TransactionController extends Controller
      */
     public function destroy(Category $category, Budget $budget, Transaction $transaction): Response
     {
+        Gate::authorize('delete', $category);
+
         $transaction->delete();
 
         return response()->noContent();

@@ -58,22 +58,32 @@ class TransactionSeeder extends Seeder
     ];
 
     /**
-     * Multiplier applied to template amounts per month (August has a bigger entertainment spend).
+     * Multiplier applied to template amounts per seeded month, oldest first
+     * (see BudgetSeeder::months()); the second month has a bigger entertainment spend.
      *
-     * @var array<string, float>
+     * @var list<float>
      */
-    protected const MONTH_FACTORS = ['2026-07' => 1.05, '2026-08' => 0.95, '2026-09' => 0.90];
+    protected const MONTH_FACTORS = [1.05, 0.95, 0.90, 1.0];
 
     public function run(): void
     {
-        Budget::with('category')->get()->each(function (Budget $budget): void {
-            $factor = self::MONTH_FACTORS[$budget->month];
+        $months = BudgetSeeder::months();
+        $currentMonth = now()->format('Y-m');
 
-            if ($budget->category->name === 'Pramogos ir laisvalaikis' && $budget->month === '2026-08') {
+        Budget::with('category')->get()->each(function (Budget $budget) use ($months, $currentMonth): void {
+            $monthIndex = array_search($budget->month, $months, true);
+            $factor = self::MONTH_FACTORS[$monthIndex];
+
+            if ($budget->category->name === 'Pramogos ir laisvalaikis' && $monthIndex === 1) {
                 $factor = 1.25;
             }
 
             foreach (self::TEMPLATES[$budget->category->name] as [$day, $amount, $description, $merchant, $method]) {
+                // The current month only has the transactions that already happened.
+                if ($budget->month === $currentMonth && $day > now()->day) {
+                    continue;
+                }
+
                 if ($budget->category->name === 'Atlyginimas') {
                     $factor = 1.0;
                     $amount = (float) $budget->amount;

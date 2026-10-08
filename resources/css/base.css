@@ -1,0 +1,242 @@
+/* ==========================================================================
+   Design tokens: green + blue palette, fonts, spacing (4px grid), radii
+   The fonts (Poppins, Nunito) are loaded from Google Fonts in layouts/app.blade.php.
+   ========================================================================== */
+:root {
+    /* Blue */
+    --navy-900: #0a2240;
+    --navy-800: #0f2f56;
+    --navy-700: #16406f;
+    --blue-600: #2563eb;
+    --blue-500: #3b82f6;
+    --blue-100: #dbeafe;
+    --blue-50: #eff6ff;
+
+    /* Green */
+    --green-900: #0b3a2a;
+    --green-800: #0f4d36;
+    --green-700: #15803d;
+    --green-600: #16a34a;
+    --green-500: #22c55e;
+    --green-300: #86efac;
+    --green-100: #dcfce7;
+    --green-50: #f0fdf4;
+
+    --teal-600: #0d9488;
+
+    /* Neutrals and states */
+    --bg: #f2f7f5;
+    --surface: #ffffff;
+    --surface-alt: #f7faf9;
+    --text: #1b2a3a;
+    --muted: #5a6b7d;
+    --border: #d9e3e8;
+    --danger: #dc2626;
+    --danger-dark: #b91c1c;
+    --danger-bg: #fee2e2;
+    --warning: #b45309;
+    --warning-bg: #fef3c7;
+
+    --gradient-brand: linear-gradient(135deg, var(--green-600) 0%, var(--teal-600) 45%, var(--blue-600) 100%);
+
+    /* Typography */
+    --font-body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-heading: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+    /* Spacing scale (multiples of 4px keep elements on the same grid lines) */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --space-8: 64px;
+
+    --radius-sm: 6px;
+    --radius: 12px;
+    --radius-lg: 20px;
+    --shadow-sm: 0 1px 2px rgb(15 47 86 / 6%), 0 1px 3px rgb(15 47 86 / 8%);
+    --shadow: 0 6px 16px rgb(15 47 86 / 9%);
+    --shadow-lg: 0 18px 40px rgb(15 47 86 / 18%);
+
+    --container: 1200px;
+    --header-height: 68px;
+    --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ==========================================================================
+   Reset
+   ========================================================================== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Responsive images: never wider than their container, height keeps the aspect ratio */
+img,
+svg,
+canvas {
+    max-width: 100%;
+    height: auto;
+}
+
+img {
+    display: block;
+}
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+    color: inherit;
+}
+
+a {
+    color: var(--blue-600);
+}
+
+h1,
+h2,
+h3,
+h4 {
+    margin: 0 0 var(--space-3);
+    font-family: var(--font-heading);
+    line-height: 1.25;
+    color: var(--navy-900);
+}
+
+h1 {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+
+p {
+    margin: 0 0 var(--space-4);
+}
+
+:focus-visible {
+    outline: 3px solid var(--blue-500);
+    outline-offset: 2px;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+/* Elements visible only for a given role; app.js adds .auth-visible (see lib/layout.js) */
+[data-auth]:not(.auth-visible) {
+    display: none !important;
+}
+
+/* ==========================================================================
+   Grid helpers
+   ========================================================================== */
+.container {
+    width: 100%;
+    max-width: var(--container);
+    margin: 0 auto;
+    padding: 0 var(--space-5);
+}
+
+.grid {
+    display: grid;
+    gap: var(--space-5);
+}
+
+.grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.grid-cards {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.stack > * + * {
+    margin-top: var(--space-5);
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.row-between {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.text-income {
+    color: var(--green-700);
+}
+
+.text-expense {
+    color: var(--blue-600);
+}
+
+.text-danger {
+    color: var(--danger);
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+.icon {
+    width: 1.15em;
+    height: 1.15em;
+    flex-shrink: 0;
+    vertical-align: -0.2em;
+}

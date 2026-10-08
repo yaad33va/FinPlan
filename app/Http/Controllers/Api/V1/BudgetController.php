@@ -12,6 +12,7 @@ use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 
 class BudgetController extends Controller
 {
@@ -20,6 +21,8 @@ class BudgetController extends Controller
      */
     public function index(BudgetIndexRequest $request, Category $category): AnonymousResourceCollection
     {
+        Gate::authorize('view', $category);
+
         $filters = $request->validated();
         $sort = $filters['sort'] ?? '-month';
 
@@ -55,6 +58,8 @@ class BudgetController extends Controller
      */
     public function store(BudgetRequest $request, Category $category): JsonResponse
     {
+        Gate::authorize('update', $category);
+
         $budget = $category->budgets()->create($request->payload());
 
         return (new BudgetResource($budget))
@@ -68,6 +73,8 @@ class BudgetController extends Controller
      */
     public function show(Category $category, Budget $budget): BudgetResource
     {
+        Gate::authorize('view', $category);
+
         return new BudgetResource($budget);
     }
 
@@ -76,6 +83,8 @@ class BudgetController extends Controller
      */
     public function update(BudgetRequest $request, Category $category, Budget $budget): BudgetResource
     {
+        Gate::authorize('update', $category);
+
         $budget->update($request->payload());
 
         return new BudgetResource($budget);
@@ -86,6 +95,8 @@ class BudgetController extends Controller
      */
     public function destroy(Category $category, Budget $budget): Response
     {
+        Gate::authorize('delete', $category);
+
         $budget->delete();
 
         return response()->noContent();

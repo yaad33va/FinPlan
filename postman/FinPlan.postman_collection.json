@@ -1,1432 +1,3197 @@
 {
-  "info": {
-    "name": "FinPlan API",
-    "description": "FinPlan REST API (lab 1). Run the whole collection with the Collection Runner. Requires a freshly seeded database: php artisan migrate:fresh --seed",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "http://localhost:8000/api/v1"
-    },
-    {
-      "key": "categoryId",
-      "value": ""
-    },
-    {
-      "key": "budgetId",
-      "value": ""
-    },
-    {
-      "key": "transactionId",
-      "value": ""
-    },
-    {
-      "key": "errCategoryId",
-      "value": ""
-    },
-    {
-      "key": "errBudgetId",
-      "value": ""
-    }
-  ],
-  "item": [
-    {
-      "name": "1. CRUD – all 15 methods",
-      "item": [
-        {
-          "name": "1. POST category",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
-                  "pm.test(\"Content-Type is JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
-                  "pm.test(\"Location header points to the new category\", () => pm.expect(pm.response.headers.get(\"Location\")).to.match(/\\/categories\\/\\d+$/));",
-                  "pm.test(\"Has hypermedia links\", () => pm.expect(pm.response.json().data._links).to.have.property(\"budgets\"));",
-                  "pm.collectionVariables.set(\"categoryId\", pm.response.json().data.id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Kelionės\",\n  \"type\": \"expense\",\n  \"description\": \"Atostogų kelionės ir savaitgalio išvykos.\",\n  \"color\": \"#00ACC1\"\n}"
-            }
-          }
-        },
-        {
-          "name": "2. GET categories (list, filter, paginate)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Content-Type is JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
-                  "const body = pm.response.json();",
-                  "pm.test(\"Only expense categories are returned\", () => body.data.forEach(c => pm.expect(c.type).to.eql(\"expense\")));",
-                  "pm.test(\"Has pagination meta and links\", () => { pm.expect(body.meta.per_page).to.eql(5); pm.expect(body.links).to.have.property(\"next\"); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories?type=expense&per_page=5&sort=name",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories"
-              ],
-              "query": [
-                {
-                  "key": "type",
-                  "value": "expense"
-                },
-                {
-                  "key": "per_page",
-                  "value": "5"
-                },
-                {
-                  "key": "sort",
-                  "value": "name"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "3. GET category",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Content-Type is JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
-                  "pm.test(\"Returns the requested category\", () => pm.expect(pm.response.json().data.id).to.eql(Number(pm.collectionVariables.get(\"categoryId\"))));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "4. PUT category",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Name updated\", () => pm.expect(pm.response.json().data.name).to.eql(\"Kelionės ir atostogos\"));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Kelionės ir atostogos\",\n  \"type\": \"expense\",\n  \"description\": \"Lėktuvo bilietai, apgyvendinimas ir ekskursijos.\",\n  \"color\": \"#0097A7\"\n}"
-            }
-          }
-        },
-        {
-          "name": "5. POST budget",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
-                  "pm.test(\"Content-Type is JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
-                  "pm.test(\"Budget starts unspent\", () => pm.expect(pm.response.json().data.spent).to.eql(0));",
-                  "pm.collectionVariables.set(\"budgetId\", pm.response.json().data.id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}/budgets",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}",
-                "budgets"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"month\": \"2026-10\",\n  \"amount\": 500,\n  \"note\": \"Rudens atostogos Palangoje.\"\n}"
-            }
-          }
-        },
-        {
-          "name": "6. GET budgets of category",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Contains the created budget\", () => pm.expect(pm.response.json().data.map(b => b.id)).to.include(Number(pm.collectionVariables.get(\"budgetId\"))));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}/budgets",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}",
-                "budgets"
-              ]
-            }
-          }
-        },
-        {
-          "name": "7. GET budget",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has spent / remaining\", () => { const d = pm.response.json().data; pm.expect(d).to.have.property(\"spent\"); pm.expect(d).to.have.property(\"remaining\"); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}",
-                "budgets",
-                "{{budgetId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "8. PATCH budget",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Amount updated\", () => pm.expect(pm.response.json().data.amount).to.eql(650.5));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}",
-                "budgets",
-                "{{budgetId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"amount\": 650.5\n}"
-            }
-          }
-        },
-        {
-          "name": "9. POST transaction",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
-                  "pm.test(\"Content-Type is JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
-                  "pm.collectionVariables.set(\"transactionId\", pm.response.json().data.id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}/transactions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}",
-                "budgets",
-                "{{budgetId}}",
-                "transactions"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"amount\": 189.99,\n  \"occurred_on\": \"2026-10-03\",\n  \"description\": \"Viešbutis Palangoje (2 naktys)\",\n  \"merchant\": \"Booking.com\",\n  \"payment_method\": \"card\"\n}"
-            }
-          }
-        },
-        {
-          "name": "10. GET transactions (hierarchical: category → budget → transactions)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"One transaction in budget\", () => pm.expect(pm.response.json().meta.total).to.eql(1));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}/transactions?sort=-occurred_on&per_page=10",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}",
-                "budgets",
-                "{{budgetId}}",
-                "transactions"
-              ],
-              "query": [
-                {
-                  "key": "sort",
-                  "value": "-occurred_on"
-                },
-                {
-                  "key": "per_page",
-                  "value": "10"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "11. GET transaction",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Links back to parent budget\", () => pm.expect(pm.response.json().data._links.budget.href).to.include(\"/budgets/\" + pm.collectionVariables.get(\"budgetId\")));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}/transactions/{{transactionId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}",
-                "budgets",
-                "{{budgetId}}",
-                "transactions",
-                "{{transactionId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "12. PUT transaction",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Amount updated\", () => pm.expect(pm.response.json().data.amount).to.eql(210));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}/transactions/{{transactionId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}",
-                "budgets",
-                "{{budgetId}}",
-                "transactions",
-                "{{transactionId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"amount\": 210.0,\n  \"occurred_on\": \"2026-10-04\",\n  \"description\": \"Viešbutis Palangoje (2 naktys, su pusryčiais)\",\n  \"merchant\": \"Booking.com\",\n  \"payment_method\": \"card\"\n}"
-            }
-          }
-        },
-        {
-          "name": "13. DELETE transaction",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 204\", () => pm.response.to.have.status(204));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}/transactions/{{transactionId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}",
-                "budgets",
-                "{{budgetId}}",
-                "transactions",
-                "{{transactionId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "14. DELETE budget",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 204\", () => pm.response.to.have.status(204));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}",
-                "budgets",
-                "{{budgetId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "15. DELETE category",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 204\", () => pm.response.to.have.status(204));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{categoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{categoryId}}"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "2. Aggregates, filtering, hierarchy",
-      "item": [
-        {
-          "name": "API root (entry point links)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Links to categories\", () => pm.expect(pm.response.json()._links).to.have.property(\"categories\"));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": []
-            }
-          }
-        },
-        {
-          "name": "Dashboard (categories + budgets + transactions)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Has summary, budgets and recent transactions\", () => { const d = pm.response.json().data; pm.expect(d).to.have.keys(\"month\", \"summary\", \"budgets\", \"recent_transactions\"); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/dashboard?month=2026-09",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "dashboard"
-              ],
-              "query": [
-                {
-                  "key": "month",
-                  "value": "2026-09"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "All transactions of a category (filtered)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"All amounts within range\", () => pm.response.json().data.forEach(t => pm.expect(t.amount).to.be.within(50, 80)));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/3/transactions?min_amount=50&max_amount=80&sort=-amount",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "3",
-                "transactions"
-              ],
-              "query": [
-                {
-                  "key": "min_amount",
-                  "value": "50"
-                },
-                {
-                  "key": "max_amount",
-                  "value": "80"
-                },
-                {
-                  "key": "sort",
-                  "value": "-amount"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Exceeded budgets of a category",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Only exceeded budgets\", () => pm.response.json().data.forEach(b => pm.expect(b.is_exceeded).to.be.true));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/6/budgets?exceeded=true",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "6",
-                "budgets"
-              ],
-              "query": [
-                {
-                  "key": "exceeded",
-                  "value": "true"
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "3. Error cases (400, 404, 405, 422)",
-      "item": [
-        {
-          "name": "Setup: create category",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set(\"errCategoryId\", pm.response.json().data.id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Klaidų demonstracija\",\n  \"type\": \"expense\",\n  \"description\": \"Laikina kategorija klaidų scenarijams.\"\n}"
-            }
-          }
-        },
-        {
-          "name": "Setup: create budget",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set(\"errBudgetId\", pm.response.json().data.id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{errCategoryId}}/budgets",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{errCategoryId}}",
-                "budgets"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"month\": \"2026-11\",\n  \"amount\": 100\n}"
-            }
-          }
-        },
-        {
-          "name": "404 – category does not exist",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));",
-                  "pm.test(\"Content-Type is JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/999999",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "999999"
-              ]
-            }
-          }
-        },
-        {
-          "name": "404 – budget exists but not in this category (scoping)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/1/budgets/{{errBudgetId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "1",
-                "budgets",
-                "{{errBudgetId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "404 – non-numeric id",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/abc",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "abc"
-              ]
-            }
-          }
-        },
-        {
-          "name": "404 – unknown endpoint",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/getCategory",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "getCategory"
-              ]
-            }
-          }
-        },
-        {
-          "name": "405 – method not allowed",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 405\", () => pm.response.to.have.status(405));",
-                  "pm.test(\"Allow header present\", () => pm.response.to.have.header(\"Allow\"));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories"
-              ]
-            }
-          }
-        },
-        {
-          "name": "400 – malformed JSON",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\"name\": \"Maistas\", \"type\": "
-            }
-          }
-        },
-        {
-          "name": "422 – invalid category payload",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));",
-                  "pm.test(\"Errors for name, type, color\", () => pm.expect(pm.response.json().errors).to.have.keys(\"name\", \"type\", \"color\"));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"\",\n  \"type\": \"savings\",\n  \"color\": \"red\"\n}"
-            }
-          }
-        },
-        {
-          "name": "422 – PUT without required fields",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{errCategoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{errCategoryId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Tik pavadinimas\"\n}"
-            }
-          }
-        },
-        {
-          "name": "422 – duplicate budget month",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{errCategoryId}}/budgets",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{errCategoryId}}",
-                "budgets"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"month\": \"2026-11\",\n  \"amount\": 50\n}"
-            }
-          }
-        },
-        {
-          "name": "422 – invalid budget values",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{errCategoryId}}/budgets",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{errCategoryId}}",
-                "budgets"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"month\": \"2026-13\",\n  \"amount\": -10\n}"
-            }
-          }
-        },
-        {
-          "name": "422 – transaction outside budget month",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{errCategoryId}}/budgets/{{errBudgetId}}/transactions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{errCategoryId}}",
-                "budgets",
-                "{{errBudgetId}}",
-                "transactions"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"amount\": 10,\n  \"occurred_on\": \"2026-12-01\",\n  \"description\": \"Kava\",\n  \"payment_method\": \"cash\"\n}"
-            }
-          }
-        },
-        {
-          "name": "422 – invalid query parameters",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories?per_page=1000&sort=password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories"
-              ],
-              "query": [
-                {
-                  "key": "per_page",
-                  "value": "1000"
-                },
-                {
-                  "key": "sort",
-                  "value": "password"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Cleanup: delete category (cascades budget)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 204\", () => pm.response.to.have.status(204));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{errCategoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{errCategoryId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "404 – deleting an already deleted category",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/categories/{{errCategoryId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "categories",
-                "{{errCategoryId}}"
-              ]
-            }
-          }
-        }
-      ]
-    }
-  ]
+	"info": {
+		"name": "FinPlan API",
+		"description": "FinPlan REST API (labs 1–2). Run the whole collection with the Collection Runner (keep \"Save cookies\" on). Requires a freshly seeded database: php artisan migrate:fresh --seed. Every request uses the Bearer token in {{accessToken}} (Jonas) unless it overrides the auth.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8000/api/v1"
+		},
+		{
+			"key": "categoryId",
+			"value": ""
+		},
+		{
+			"key": "budgetId",
+			"value": ""
+		},
+		{
+			"key": "transactionId",
+			"value": ""
+		},
+		{
+			"key": "errCategoryId",
+			"value": ""
+		},
+		{
+			"key": "errBudgetId",
+			"value": ""
+		},
+		{
+			"key": "accessToken",
+			"value": ""
+		},
+		{
+			"key": "onaToken",
+			"value": ""
+		},
+		{
+			"key": "adminToken",
+			"value": ""
+		},
+		{
+			"key": "regToken",
+			"value": ""
+		},
+		{
+			"key": "regUserId",
+			"value": ""
+		},
+		{
+			"key": "regEmail",
+			"value": ""
+		},
+		{
+			"key": "tfaSecret",
+			"value": ""
+		},
+		{
+			"key": "tfaToken",
+			"value": ""
+		},
+		{
+			"key": "totpCode",
+			"value": ""
+		},
+		{
+			"key": "invalidToken",
+			"value": "invalid.token.value"
+		}
+	],
+	"item": [
+		{
+			"name": "0. Authentication (register, login, refresh)",
+			"description": "Guest endpoints. Logs in the three seeded users and stores their access tokens. The refresh token is an HttpOnly cookie kept by the Postman cookie jar.",
+			"item": [
+				{
+					"name": "Register a new member",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.collectionVariables.set(\"regEmail\", `postman_${Date.now()}@example.com`);"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+									"pm.test(\"New account is a member even if role=admin is sent\", () => pm.expect(pm.response.json().data.role).to.eql(\"member\"));",
+									"pm.test(\"Refresh token cookie is HttpOnly\", () => pm.expect(pm.response.headers.get(\"Set-Cookie\").toLowerCase()).to.include(\"httponly\"));",
+									"pm.collectionVariables.set(\"regToken\", pm.response.json().access_token);",
+									"pm.collectionVariables.set(\"regUserId\", pm.response.json().data.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Postman Testuotojas\",\n  \"email\": \"{{regEmail}}\",\n  \"password\": \"Postman123\",\n  \"password_confirmation\": \"Postman123\",\n  \"role\": \"admin\"\n}"
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "422 – register with an existing email and weak password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));",
+									"pm.test(\"Errors for email and password\", () => pm.expect(pm.response.json().errors).to.have.keys(\"email\", \"password\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"register"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Jonas\",\n  \"email\": \"jonas@finplan.lt\",\n  \"password\": \"123\",\n  \"password_confirmation\": \"123\"\n}"
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "Login – Ona (member)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.collectionVariables.set(\"onaToken\", pm.response.json().access_token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"ona@finplan.lt\",\n  \"password\": \"Ona123456\"\n}"
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "Login – admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"const claims = JSON.parse(atob(pm.response.json().access_token.split(\".\")[1].replace(/-/g, \"+\").replace(/_/g, \"/\")));",
+									"pm.test(\"Token contains role admin and user ID\", () => { pm.expect(claims.role).to.eql(\"admin\"); pm.expect(claims.sub).to.eql(String(pm.response.json().data.id)); });",
+									"pm.collectionVariables.set(\"adminToken\", pm.response.json().access_token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@finplan.lt\",\n  \"password\": \"Admin12345\"\n}"
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "Login – Jonas (member, used by the rest of the collection)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"const claims = JSON.parse(atob(pm.response.json().access_token.split(\".\")[1].replace(/-/g, \"+\").replace(/_/g, \"/\")));",
+									"pm.test(\"Access token is short-lived (15 min)\", () => pm.expect(claims.exp - claims.iat).to.eql(900));",
+									"pm.test(\"Token contains role member\", () => pm.expect(claims.role).to.eql(\"member\"));",
+									"pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"jonas@finplan.lt\",\n  \"password\": \"Jonas12345\"\n}"
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "GET current user (me)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"It is Jonas\", () => pm.expect(pm.response.json().data.email).to.eql(\"jonas@finplan.lt\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						}
+					}
+				},
+				{
+					"name": "Refresh the access token (cookie)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"New access token\", () => pm.expect(pm.response.json().access_token).to.be.a(\"string\"));",
+									"pm.collectionVariables.set(\"accessToken\", pm.response.json().access_token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "401 – wrong password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"jonas@finplan.lt\",\n  \"password\": \"neteisingas\"\n}"
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "401 – no access token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "401 – invalid access token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));",
+									"pm.test(\"Message explains why\", () => pm.expect(pm.response.json().message).to.eql(\"The token is invalid.\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{invalidToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "1. CRUD – all 15 methods (as Jonas)",
+			"item": [
+				{
+					"name": "1. POST category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+									"pm.test(\"Content-Type is JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+									"pm.test(\"Location header points to the new category\", () => pm.expect(pm.response.headers.get(\"Location\")).to.match(/\\/categories\\/\\d+$/));",
+									"pm.test(\"Has hypermedia links\", () => pm.expect(pm.response.json().data._links).to.have.property(\"budgets\"));",
+									"pm.collectionVariables.set(\"categoryId\", pm.response.json().data.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Kelionės\",\n  \"type\": \"expense\",\n  \"description\": \"Atostogų kelionės ir savaitgalio išvykos.\",\n  \"color\": \"#00ACC1\"\n}"
+						}
+					}
+				},
+				{
+					"name": "2. GET categories (list, filter, paginate)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Content-Type is JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+									"const body = pm.response.json();",
+									"pm.test(\"Only expense categories are returned\", () => body.data.forEach(c => pm.expect(c.type).to.eql(\"expense\")));",
+									"pm.test(\"Has pagination meta and links\", () => { pm.expect(body.meta.per_page).to.eql(5); pm.expect(body.links).to.have.property(\"next\"); });"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories?type=expense&per_page=5&sort=name",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "expense"
+								},
+								{
+									"key": "per_page",
+									"value": "5"
+								},
+								{
+									"key": "sort",
+									"value": "name"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "3. GET category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Content-Type is JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+									"pm.test(\"Returns the requested category\", () => pm.expect(pm.response.json().data.id).to.eql(Number(pm.collectionVariables.get(\"categoryId\"))));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "4. PUT category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Name updated\", () => pm.expect(pm.response.json().data.name).to.eql(\"Kelionės ir atostogos\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Kelionės ir atostogos\",\n  \"type\": \"expense\",\n  \"description\": \"Lėktuvo bilietai, apgyvendinimas ir ekskursijos.\",\n  \"color\": \"#0097A7\"\n}"
+						}
+					}
+				},
+				{
+					"name": "5. POST budget",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+									"pm.test(\"Content-Type is JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+									"pm.test(\"Budget starts unspent\", () => pm.expect(pm.response.json().data.spent).to.eql(0));",
+									"pm.collectionVariables.set(\"budgetId\", pm.response.json().data.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}/budgets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}",
+								"budgets"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"month\": \"2026-10\",\n  \"amount\": 500,\n  \"note\": \"Rudens atostogos Palangoje.\"\n}"
+						}
+					}
+				},
+				{
+					"name": "6. GET budgets of category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Contains the created budget\", () => pm.expect(pm.response.json().data.map(b => b.id)).to.include(Number(pm.collectionVariables.get(\"budgetId\"))));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}/budgets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}",
+								"budgets"
+							]
+						}
+					}
+				},
+				{
+					"name": "7. GET budget",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Has spent / remaining\", () => { const d = pm.response.json().data; pm.expect(d).to.have.property(\"spent\"); pm.expect(d).to.have.property(\"remaining\"); });"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}",
+								"budgets",
+								"{{budgetId}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "8. PATCH budget",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Amount updated\", () => pm.expect(pm.response.json().data.amount).to.eql(650.5));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}",
+								"budgets",
+								"{{budgetId}}"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 650.5\n}"
+						}
+					}
+				},
+				{
+					"name": "9. POST transaction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+									"pm.test(\"Content-Type is JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));",
+									"pm.collectionVariables.set(\"transactionId\", pm.response.json().data.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}/transactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}",
+								"budgets",
+								"{{budgetId}}",
+								"transactions"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 189.99,\n  \"occurred_on\": \"2026-10-03\",\n  \"description\": \"Viešbutis Palangoje (2 naktys)\",\n  \"merchant\": \"Booking.com\",\n  \"payment_method\": \"card\"\n}"
+						}
+					}
+				},
+				{
+					"name": "10. GET transactions (hierarchical: category → budget → transactions)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"One transaction in budget\", () => pm.expect(pm.response.json().meta.total).to.eql(1));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}/transactions?sort=-occurred_on&per_page=10",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}",
+								"budgets",
+								"{{budgetId}}",
+								"transactions"
+							],
+							"query": [
+								{
+									"key": "sort",
+									"value": "-occurred_on"
+								},
+								{
+									"key": "per_page",
+									"value": "10"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "11. GET transaction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Links back to parent budget\", () => pm.expect(pm.response.json().data._links.budget.href).to.include(\"/budgets/\" + pm.collectionVariables.get(\"budgetId\")));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}/transactions/{{transactionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}",
+								"budgets",
+								"{{budgetId}}",
+								"transactions",
+								"{{transactionId}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "12. PUT transaction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Amount updated\", () => pm.expect(pm.response.json().data.amount).to.eql(210));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}/transactions/{{transactionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}",
+								"budgets",
+								"{{budgetId}}",
+								"transactions",
+								"{{transactionId}}"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 210.0,\n  \"occurred_on\": \"2026-10-04\",\n  \"description\": \"Viešbutis Palangoje (2 naktys, su pusryčiais)\",\n  \"merchant\": \"Booking.com\",\n  \"payment_method\": \"card\"\n}"
+						}
+					}
+				},
+				{
+					"name": "13. DELETE transaction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}/transactions/{{transactionId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}",
+								"budgets",
+								"{{budgetId}}",
+								"transactions",
+								"{{transactionId}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "14. DELETE budget",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}/budgets/{{budgetId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}",
+								"budgets",
+								"{{budgetId}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "15. DELETE category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{categoryId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{categoryId}}"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Aggregates, filtering, hierarchy",
+			"item": [
+				{
+					"name": "API root (entry point links)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Links to categories\", () => pm.expect(pm.response.json()._links).to.have.property(\"categories\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": []
+						}
+					}
+				},
+				{
+					"name": "Dashboard (user + categories + budgets + transactions)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Has user, summary, budgets and recent transactions\", () => { const d = pm.response.json().data; pm.expect(d).to.have.keys(\"month\", \"user\", \"summary\", \"budgets\", \"recent_transactions\"); });"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/dashboard",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"dashboard"
+							]
+						}
+					}
+				},
+				{
+					"name": "All transactions of a category (filtered)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"All amounts within range\", () => pm.response.json().data.forEach(t => pm.expect(t.amount).to.be.within(50, 80)));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/3/transactions?min_amount=50&max_amount=80&sort=-amount",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"3",
+								"transactions"
+							],
+							"query": [
+								{
+									"key": "min_amount",
+									"value": "50"
+								},
+								{
+									"key": "max_amount",
+									"value": "80"
+								},
+								{
+									"key": "sort",
+									"value": "-amount"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Exceeded budgets of a category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Only exceeded budgets\", () => pm.response.json().data.forEach(b => pm.expect(b.is_exceeded).to.be.true));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/6/budgets?exceeded=true",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"6",
+								"budgets"
+							],
+							"query": [
+								{
+									"key": "exceeded",
+									"value": "true"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "3. Error cases (400, 404, 405, 422)",
+			"item": [
+				{
+					"name": "Setup: create category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set(\"errCategoryId\", pm.response.json().data.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Klaidų demonstracija\",\n  \"type\": \"expense\",\n  \"description\": \"Laikina kategorija klaidų scenarijams.\"\n}"
+						}
+					}
+				},
+				{
+					"name": "Setup: create budget",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 201\", () => pm.response.to.have.status(201));",
+									"pm.collectionVariables.set(\"errBudgetId\", pm.response.json().data.id);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{errCategoryId}}/budgets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{errCategoryId}}",
+								"budgets"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"month\": \"2026-11\",\n  \"amount\": 100\n}"
+						}
+					}
+				},
+				{
+					"name": "404 – category does not exist",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));",
+									"pm.test(\"Content-Type is JSON\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/999999",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"999999"
+							]
+						}
+					}
+				},
+				{
+					"name": "404 – budget exists but not in this category (scoping)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/1/budgets/{{errBudgetId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"1",
+								"budgets",
+								"{{errBudgetId}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "404 – non-numeric id",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/abc",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"abc"
+							]
+						}
+					}
+				},
+				{
+					"name": "404 – unknown endpoint",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/getCategory",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"getCategory"
+							]
+						}
+					}
+				},
+				{
+					"name": "405 – method not allowed",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 405\", () => pm.response.to.have.status(405));",
+									"pm.test(\"Allow header present\", () => pm.response.to.have.header(\"Allow\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							]
+						}
+					}
+				},
+				{
+					"name": "400 – malformed JSON",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 400\", () => pm.response.to.have.status(400));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\"name\": \"Maistas\", \"type\": "
+						}
+					}
+				},
+				{
+					"name": "422 – invalid category payload",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));",
+									"pm.test(\"Errors for name, type, color\", () => pm.expect(pm.response.json().errors).to.have.keys(\"name\", \"type\", \"color\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"\",\n  \"type\": \"savings\",\n  \"color\": \"red\"\n}"
+						}
+					}
+				},
+				{
+					"name": "422 – PUT without required fields",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{errCategoryId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{errCategoryId}}"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Tik pavadinimas\"\n}"
+						}
+					}
+				},
+				{
+					"name": "422 – duplicate budget month",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{errCategoryId}}/budgets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{errCategoryId}}",
+								"budgets"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"month\": \"2026-11\",\n  \"amount\": 50\n}"
+						}
+					}
+				},
+				{
+					"name": "422 – invalid budget values",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{errCategoryId}}/budgets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{errCategoryId}}",
+								"budgets"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"month\": \"2026-13\",\n  \"amount\": -10\n}"
+						}
+					}
+				},
+				{
+					"name": "422 – transaction outside budget month",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{errCategoryId}}/budgets/{{errBudgetId}}/transactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{errCategoryId}}",
+								"budgets",
+								"{{errBudgetId}}",
+								"transactions"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"amount\": 10,\n  \"occurred_on\": \"2026-12-01\",\n  \"description\": \"Kava\",\n  \"payment_method\": \"cash\"\n}"
+						}
+					}
+				},
+				{
+					"name": "422 – invalid query parameters",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories?per_page=1000&sort=password",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							],
+							"query": [
+								{
+									"key": "per_page",
+									"value": "1000"
+								},
+								{
+									"key": "sort",
+									"value": "password"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Cleanup: delete category (cascades budget)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{errCategoryId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{errCategoryId}}"
+							]
+						}
+					}
+				},
+				{
+					"name": "404 – deleting an already deleted category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/{{errCategoryId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"{{errCategoryId}}"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "4. Authorization by role and owner (403)",
+			"description": "Jonas owns categories 1–7, Ona owns 8–11. Members may only access their own data; the admin may view and delete anyone's data but not edit it.",
+			"item": [
+				{
+					"name": "403 – Ona reads Jonas's category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"1"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{onaToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "403 – Ona edits Jonas's category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"1"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Pakeista\"\n}"
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{onaToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "403 – Ona deletes Jonas's transaction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/1/budgets/1/transactions/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"1",
+								"budgets",
+								"1",
+								"transactions",
+								"1"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{onaToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "403 – Ona adds a budget to Jonas's category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/1/budgets",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"1",
+								"budgets"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"month\": \"2030-01\",\n  \"amount\": 100\n}"
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{onaToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "403 – member lists another user's categories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories?user_id=3",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "3"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "403 – member opens an admin endpoint",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					}
+				},
+				{
+					"name": "Admin – list members",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Only members\", () => pm.response.json().data.forEach(u => pm.expect(u.role).to.eql(\"member\")));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users?role=member&sort=name",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users"
+							],
+							"query": [
+								{
+									"key": "role",
+									"value": "member"
+								},
+								{
+									"key": "sort",
+									"value": "name"
+								}
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Admin – GET user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Has categories count and links\", () => { pm.expect(pm.response.json().data).to.have.property(\"categories_count\"); pm.expect(pm.response.json().data._links).to.have.property(\"delete\"); });"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/2",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"2"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Admin – Jonas's categories",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"All owned by Jonas\", () => pm.response.json().data.forEach(c => pm.expect(c.owner.id).to.eql(2)));",
+									"pm.test(\"No update link for the admin\", () => pm.expect(pm.response.json().data[0]._links).to.not.have.property(\"update\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories?user_id=2",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories"
+							],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "2"
+								}
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Admin – view Jonas's budget transactions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/1/budgets/1/transactions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"1",
+								"budgets",
+								"1",
+								"transactions"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "403 – admin edits Jonas's category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/categories/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"categories",
+								"1"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Admin pakeitė\"\n}"
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "403 – admin deletes own account",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 403\", () => pm.response.to.have.status(403));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"1"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "5. Two-factor authentication (TOTP)",
+			"description": "Uses the member registered in folder 0. The TOTP code is computed in the pre-request script from the secret, exactly like an authenticator app.",
+			"item": [
+				{
+					"name": "Start 2FA setup",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"Returns secret and otpauth URL\", () => pm.expect(pm.response.json().otpauth_url).to.match(/^otpauth:\\/\\/totp\\//));",
+									"pm.collectionVariables.set(\"tfaSecret\", pm.response.json().secret);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/two-factor",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"two-factor"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{regToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "422 – confirm with a wrong code",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/two-factor/confirm",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"two-factor",
+								"confirm"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"000000\"\n}"
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{regToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Confirm 2FA with a valid code",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// TOTP (RFC 6238) computed from the secret, like an authenticator app does.",
+									"function base32ToHex(secret) {",
+									"    const alphabet = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567\";",
+									"    let bits = \"\";",
+									"    for (const char of secret.replace(/=+$/, \"\").toUpperCase()) bits += alphabet.indexOf(char).toString(2).padStart(5, \"0\");",
+									"    let hex = \"\";",
+									"    for (let i = 0; i + 8 <= bits.length; i += 8) hex += parseInt(bits.substr(i, 8), 2).toString(16).padStart(2, \"0\");",
+									"    return hex;",
+									"}",
+									"function totp(secret) {",
+									"    const counter = Math.floor(Date.now() / 1000 / 30).toString(16).padStart(16, \"0\");",
+									"    const hmac = CryptoJS.HmacSHA1(CryptoJS.enc.Hex.parse(counter), CryptoJS.enc.Hex.parse(base32ToHex(secret))).toString(CryptoJS.enc.Hex);",
+									"    const offset = parseInt(hmac.slice(-1), 16);",
+									"    return ((parseInt(hmac.substr(offset * 2, 8), 16) & 0x7fffffff) % 1000000).toString().padStart(6, \"0\");",
+									"}",
+									"pm.collectionVariables.set(\"totpCode\", totp(pm.collectionVariables.get(\"tfaSecret\")));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"2FA enabled\", () => pm.expect(pm.response.json().data.two_factor_enabled).to.be.true);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/two-factor/confirm",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"two-factor",
+								"confirm"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": \"{{totpCode}}\"\n}"
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{regToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Login – password step returns a 2FA challenge",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.test(\"No access token yet\", () => { pm.expect(pm.response.json().two_factor_required).to.be.true; pm.expect(pm.response.json()).to.not.have.property(\"access_token\"); });",
+									"pm.collectionVariables.set(\"tfaToken\", pm.response.json().two_factor_token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{regEmail}}\",\n  \"password\": \"Postman123\"\n}"
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "401 – the 2FA challenge token is not an access token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{tfaToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "422 – challenge with a wrong code",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/two-factor/challenge",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"two-factor",
+								"challenge"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"two_factor_token\": \"{{tfaToken}}\",\n  \"code\": \"123456\"\n}"
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "Login – 2FA code step returns tokens",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"// TOTP (RFC 6238) computed from the secret, like an authenticator app does.",
+									"function base32ToHex(secret) {",
+									"    const alphabet = \"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567\";",
+									"    let bits = \"\";",
+									"    for (const char of secret.replace(/=+$/, \"\").toUpperCase()) bits += alphabet.indexOf(char).toString(2).padStart(5, \"0\");",
+									"    let hex = \"\";",
+									"    for (let i = 0; i + 8 <= bits.length; i += 8) hex += parseInt(bits.substr(i, 8), 2).toString(16).padStart(2, \"0\");",
+									"    return hex;",
+									"}",
+									"function totp(secret) {",
+									"    const counter = Math.floor(Date.now() / 1000 / 30).toString(16).padStart(16, \"0\");",
+									"    const hmac = CryptoJS.HmacSHA1(CryptoJS.enc.Hex.parse(counter), CryptoJS.enc.Hex.parse(base32ToHex(secret))).toString(CryptoJS.enc.Hex);",
+									"    const offset = parseInt(hmac.slice(-1), 16);",
+									"    return ((parseInt(hmac.substr(offset * 2, 8), 16) & 0x7fffffff) % 1000000).toString().padStart(6, \"0\");",
+									"}",
+									"pm.collectionVariables.set(\"totpCode\", totp(pm.collectionVariables.get(\"tfaSecret\")));"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 200\", () => pm.response.to.have.status(200));",
+									"pm.collectionVariables.set(\"regToken\", pm.response.json().access_token);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/two-factor/challenge",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"two-factor",
+								"challenge"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"two_factor_token\": \"{{tfaToken}}\",\n  \"code\": \"{{totpCode}}\"\n}"
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				},
+				{
+					"name": "422 – disable 2FA with a wrong password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 422\", () => pm.response.to.have.status(422));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/two-factor",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"two-factor"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"neteisingas\"\n}"
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{regToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Disable 2FA",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/two-factor",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"two-factor"
+							]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"password\": \"Postman123\"\n}"
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{regToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "6. Logout and cleanup",
+			"item": [
+				{
+					"name": "Admin – delete the registered member",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{regUserId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{regUserId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "404 – deleted user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 404\", () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/users/{{regUserId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"users",
+								"{{regUserId}}"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{adminToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "401 – token of the deleted user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{regToken}}",
+									"type": "string"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Logout (Jonas)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 204\", () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						}
+					}
+				},
+				{
+					"name": "401 – access token after logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));",
+									"pm.test(\"Session ended\", () => pm.expect(pm.response.json().message).to.include(\"session has ended\"));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						}
+					}
+				},
+				{
+					"name": "401 – refresh after logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test(\"Status code is 401\", () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							]
+						},
+						"auth": {
+							"type": "noauth"
+						}
+					}
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	}
 }

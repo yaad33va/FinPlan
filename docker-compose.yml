@@ -1,3 +1,4 @@
+# FinPlan: docker compose up -d --build   →   http://localhost:8080
 services:
   mysql:
     image: mysql:8.4
@@ -6,7 +7,7 @@ services:
       MYSQL_DATABASE: finplan
       MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
     ports:
-      - "3307:3306"
+      - "3307:3306" # for local development with php artisan serve
     volumes:
       - finplan-mysql:/var/lib/mysql
     healthcheck:
@@ -14,5 +15,40 @@ services:
       interval: 5s
       retries: 20
 
+  app:
+    build: .
+    image: finplan-app
+    container_name: finplan-app
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    environment:
+      APP_NAME: FinPlan
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: ${FINPLAN_URL:-http://localhost:8080}
+      # APP_KEY and JWT_SECRET are generated on the first start and kept in the storage volume.
+      # On a server set them explicitly (php artisan key:generate --show / php artisan jwt:secret --show).
+      APP_KEY: ${FINPLAN_APP_KEY:-}
+      JWT_SECRET: ${FINPLAN_JWT_SECRET:-}
+      # true = refresh token cookie only over HTTPS. Set to true when the site is served over HTTPS.
+      JWT_COOKIE_SECURE: ${FINPLAN_COOKIE_SECURE:-false}
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: finplan
+      DB_USERNAME: root
+      DB_PASSWORD: ""
+      SESSION_DRIVER: database
+      CACHE_STORE: database
+      LOG_CHANNEL: stderr
+      SEED_DATABASE: "true"
+    volumes:
+      - finplan-storage:/var/www/html/storage
+    restart: unless-stopped
+
 volumes:
   finplan-mysql:
+  finplan-storage:

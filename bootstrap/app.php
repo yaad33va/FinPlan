@@ -1,7 +1,10 @@
 <?php
 
+use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\RejectMalformedJson;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,11 +25,30 @@ return Application::configure(basePath: dirname(__DIR__))
             ForceJsonResponse::class,
             RejectMalformedJson::class,
         ]);
+
+        $middleware->alias([
+            'role' => EnsureRole::class,
+        ]);
+
+        // Check the role right after authentication, before route model binding (403 before 404).
+        $middleware->appendToPriorityList(AuthenticatesRequests::class, EnsureRole::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (AuthenticationException $exception, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            $message = $exception->getMessage() === 'Unauthenticated.'
+                ? $request->attributes->get('auth_error', 'Unauthenticated. Send a valid access token in the "Authorization: Bearer <token>" header.')
+                : $exception->getMessage();
+
+            return response()->json(['message' => $message], 401, ['WWW-Authenticate' => 'Bearer']);
+        });
 
         $exceptions->render(function (NotFoundHttpException $exception, Request $request) {
             if (! $request->is('api/*')) {

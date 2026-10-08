@@ -1,0 +1,227 @@
+/* ==========================================================================
+   Keyframe animations
+   ========================================================================== */
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes modal-in {
+    from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes backdrop-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes toast-in {
+    from {
+        opacity: 0;
+        transform: translateX(110%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes toast-out {
+    to {
+        opacity: 0;
+        transform: translateX(110%);
+    }
+}
+
+@keyframes toast-timer {
+    from {
+        width: 100%;
+    }
+
+    to {
+        width: 0;
+    }
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes shimmer {
+    from {
+        background-position: 200% 0;
+    }
+
+    to {
+        background-position: -200% 0;
+    }
+}
+
+@keyframes float {
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Content appears with a short slide-up after data is loaded */
+.fade-in {
+    animation: fade-in-up 0.45s var(--ease) both;
+}
+
+/* Cards in a grid appear one after another */
+.stagger > * {
+    animation: fade-in-up 0.45s var(--ease) both;
+}
+
+.stagger > *:nth-child(2) { animation-delay: 0.05s; }
+.stagger > *:nth-child(3) { animation-delay: 0.1s; }
+.stagger > *:nth-child(4) { animation-delay: 0.15s; }
+.stagger > *:nth-child(5) { animation-delay: 0.2s; }
+.stagger > *:nth-child(6) { animation-delay: 0.25s; }
+.stagger > *:nth-child(n + 7) { animation-delay: 0.3s; }
+
+.modal[open] {
+    animation: modal-in 0.28s var(--ease);
+}
+
+.modal[open]::backdrop {
+    animation: backdrop-in 0.28s ease;
+}
+
+.toast {
+    animation: toast-in 0.35s var(--ease);
+}
+
+.toast.is-leaving {
+    animation: toast-out 0.3s ease forwards;
+}
+
+.toast-timer {
+    animation: toast-timer linear forwards;
+}
+
+.spinner {
+    animation: spin 0.75s linear infinite;
+}
+
+.skeleton {
+    animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.hero-image {
+    animation: float 6s ease-in-out infinite;
+}
+
+/* ==========================================================================
+   Transitions (hover / state changes)
+   ========================================================================== */
+.btn,
+.icon-btn,
+.page-btn,
+.main-nav a,
+.main-nav .nav-button,
+.segmented label,
+.choice label,
+.tab,
+.input,
+.select,
+.textarea,
+.budget-item a,
+.data-table tbody tr {
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
+}
+
+.btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn .icon-arrow {
+    transition: transform 0.2s ease;
+}
+
+.btn:hover .icon-arrow {
+    transform: translateX(4px);
+}
+
+/* Cards lift on hover */
+.card-hover {
+    transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+
+.card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow);
+}
+
+/* Budget bars grow from 0 to their value (width is set by JavaScript) */
+.progress-bar {
+    transition: width 0.9s var(--ease);
+}
+
+.site-footer a {
+    transition: background-size 0.25s ease, color 0.2s ease;
+}
+
+/* Hamburger icon turns into an "X" */
+.nav-toggle span {
+    transition: transform 0.25s ease, opacity 0.2s ease;
+}
+
+.nav-open .nav-toggle span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.nav-open .nav-toggle span:nth-child(2) {
+    opacity: 0;
+}
+
+.nav-open .nav-toggle span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}

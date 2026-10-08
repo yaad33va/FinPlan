@@ -1,9 +1,16 @@
-@import 'tailwindcss';
-
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
-
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
-}
+/*
+ * FinPlan styles (plain CSS, bundled by Vite).
+ *
+ * base.css        – colour palette, fonts, spacing scale, reset, grid
+ * layout.css      – header (navigation, hamburger), content area, footer
+ * components.css  – buttons, forms, cards, tables, modals, toasts, ...
+ * pages.css       – page specific styles (landing, auth, dashboard, ...)
+ * animations.css  – keyframes and transitions
+ * responsive.css  – breakpoints (1024px, 768px, 480px)
+ */
+@import './base.css';
+@import './layout.css';
+@import './components.css';
+@import './pages.css';
+@import './animations.css';
+@import './responsive.css';

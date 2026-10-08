@@ -7,6 +7,7 @@ use App\Http\Requests\TransactionIndexRequest;
 use App\Http\Resources\TransactionResource;
 use App\Models\Category;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Support\Facades\Gate;
 
 class CategoryTransactionController extends Controller
 {
@@ -15,6 +16,8 @@ class CategoryTransactionController extends Controller
      */
     public function __invoke(TransactionIndexRequest $request, Category $category): AnonymousResourceCollection
     {
+        Gate::authorize('view', $category);
+
         $filters = $request->validated();
 
         $transactions = $category->transactions()

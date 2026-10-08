@@ -1,0 +1,241 @@
+/* ==========================================================================
+   Header – dark blue, white text, links become green "pills" on hover
+   ========================================================================== */
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: linear-gradient(90deg, var(--navy-900) 0%, var(--navy-800) 60%, var(--navy-700) 100%);
+    color: #fff;
+    box-shadow: 0 2px 12px rgb(10 34 64 / 35%);
+}
+
+.header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--header-height);
+    gap: var(--space-5);
+}
+
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: #fff;
+    text-decoration: none;
+    font-family: var(--font-heading);
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.brand-logo {
+    width: 38px;
+    height: 38px;
+}
+
+.brand-name span {
+    color: var(--green-300);
+}
+
+.main-nav ul {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.main-nav a,
+.main-nav .nav-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: rgb(255 255 255 / 85%);
+    font-family: var(--font-heading);
+    font-size: 0.92rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.main-nav a:hover,
+.main-nav .nav-button:hover {
+    background: rgb(34 197 94 / 18%);
+    color: #fff;
+}
+
+.main-nav a.is-active {
+    background: var(--green-600);
+    color: #fff;
+}
+
+/* Header buttons are outlined, unlike the filled buttons in the content area */
+.main-nav .nav-cta {
+    border: 1.5px solid var(--green-300);
+    color: var(--green-300);
+}
+
+.main-nav .nav-cta:hover {
+    background: var(--green-300);
+    color: var(--navy-900);
+}
+
+.nav-user-name {
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.role-pill {
+    padding: 0 var(--space-2);
+    border-radius: 999px;
+    background: var(--blue-500);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Hamburger button: hidden on desktop, shown below 768px (responsive.css) */
+.nav-toggle {
+    display: none;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: rgb(255 255 255 / 8%);
+    cursor: pointer;
+}
+
+.nav-toggle span {
+    display: block;
+    height: 3px;
+    margin: 4px 0;
+    border-radius: 2px;
+    background: #fff;
+}
+
+/* ==========================================================================
+   Content
+   ========================================================================== */
+.site-main {
+    flex: 1;
+    padding: var(--space-6) 0 var(--space-8);
+}
+
+.page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.page-header h1 {
+    margin: 0;
+}
+
+.page-header p {
+    margin: var(--space-1) 0 0;
+    color: var(--muted);
+}
+
+.breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-3);
+    padding: 0;
+    list-style: none;
+    font-size: 0.9rem;
+    color: var(--muted);
+}
+
+.breadcrumbs li + li::before {
+    content: '›';
+    margin-right: var(--space-2);
+    color: var(--border);
+}
+
+.breadcrumbs a {
+    color: var(--teal-600);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.breadcrumbs a:hover {
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Footer – dark green, light green links, small uppercase headings
+   ========================================================================== */
+.site-footer {
+    background: var(--green-900);
+    color: rgb(255 255 255 / 75%);
+    font-size: 0.92rem;
+}
+
+.footer-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: var(--space-6);
+    padding: var(--space-7) var(--space-5) var(--space-6);
+}
+
+.site-footer .brand {
+    font-size: 1.15rem;
+    margin-bottom: var(--space-3);
+}
+
+.site-footer h4 {
+    margin-bottom: var(--space-3);
+    color: var(--green-300);
+    font-size: 0.78rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.site-footer ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.site-footer li + li {
+    margin-top: var(--space-2);
+}
+
+/* Footer links: no pills, light green with an underline that grows on hover */
+.site-footer a {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--green-100);
+    text-decoration: none;
+    background: linear-gradient(var(--green-300), var(--green-300)) left bottom / 0 1px no-repeat;
+}
+
+.site-footer a:hover {
+    background-size: 100% 1px;
+    color: #fff;
+}
+
+.footer-bottom {
+    border-top: 1px solid rgb(255 255 255 / 10%);
+    padding: var(--space-4) 0;
+    font-size: 0.82rem;
+    color: rgb(255 255 255 / 55%);
+}

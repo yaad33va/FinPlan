@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 380" width="480" height="380">
+  <defs>
+    <linearGradient id="steps-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f2f56"/>
+      <stop offset="1" stop-color="#0b3a2a"/>
+    </linearGradient>
+    <linearGradient id="steps-bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22c55e"/>
+      <stop offset="1" stop-color="#0d9488"/>
+    </linearGradient>
+    <filter id="steps-shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <rect width="480" height="380" rx="24" fill="url(#steps-bg)"/>
+  <circle cx="420" cy="60" r="70" fill="#22c55e" opacity="0.12"/>
+  <circle cx="40" cy="340" r="80" fill="#3b82f6" opacity="0.14"/>
+
+  <!-- phone -->
+  <g filter="url(#steps-shadow)">
+    <rect x="150" y="34" width="180" height="320" rx="28" fill="#fff"/>
+  </g>
+  <rect x="210" y="46" width="60" height="8" rx="4" fill="#cbd5e1"/>
+
+  <!-- budget rows -->
+  <g font-family="Arial, sans-serif">
+    <rect x="170" y="78" width="140" height="58" rx="12" fill="#f0fdf4"/>
+    <circle cx="188" cy="96" r="7" fill="#16a34a"/>
+    <rect x="202" y="91" width="70" height="9" rx="4.5" fill="#0f2f56"/>
+    <rect x="180" y="116" width="120" height="8" rx="4" fill="#e3ecef"/>
+    <rect x="180" y="116" width="78" height="8" rx="4" fill="url(#steps-bar)"/>
+
+    <rect x="170" y="146" width="140" height="58" rx="12" fill="#eff6ff"/>
+    <circle cx="188" cy="164" r="7" fill="#2563eb"/>
+    <rect x="202" y="159" width="56" height="9" rx="4.5" fill="#0f2f56"/>
+    <rect x="180" y="184" width="120" height="8" rx="4" fill="#e3ecef"/>
+    <rect x="180" y="184" width="104" height="8" rx="4" fill="#f59e0b"/>
+
+    <rect x="170" y="214" width="140" height="58" rx="12" fill="#fef2f2"/>
+    <circle cx="188" cy="232" r="7" fill="#8e24aa"/>
+    <rect x="202" y="227" width="80" height="9" rx="4.5" fill="#0f2f56"/>
+    <rect x="180" y="252" width="120" height="8" rx="4" fill="#ef4444"/>
+  </g>
+
+  <rect x="170" y="290" width="140" height="40" rx="12" fill="#16a34a"/>
+  <path d="M232 310h16M240 302v16" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- floating chips -->
+  <g filter="url(#steps-shadow)">
+    <rect x="40" y="96" width="120" height="46" rx="23" fill="#fff"/>
+    <rect x="330" y="230" width="120" height="46" rx="23" fill="#fff"/>
+  </g>
+  <circle cx="64" cy="119" r="12" fill="#dcfce7"/>
+  <path d="M58 119l4 4 8-8" fill="none" stroke="#16a34a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="84" y="114" width="60" height="10" rx="5" fill="#0f2f56"/>
+  <circle cx="354" cy="253" r="12" fill="#dbeafe"/>
+  <path d="M354 247v12M348 253h12" stroke="#2563eb" stroke-width="2.6" stroke-linecap="round"/>
+  <rect x="374" y="248" width="60" height="10" rx="5" fill="#0f2f56"/>
+</svg>

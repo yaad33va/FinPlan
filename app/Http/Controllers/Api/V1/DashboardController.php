@@ -6,7 +6,6 @@ use App\Enums\CategoryType;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\TransactionResource;
 use App\Models\Budget;
-use App\Models\Category;
 use App\Models\Transaction;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -15,7 +14,8 @@ use Illuminate\Http\Request;
 class DashboardController extends Controller
 {
     /**
-     * GET /dashboard?month=YYYY-MM — monthly overview composed from categories, budgets and transactions.
+     * GET /dashboard?month=YYYY-MM — the logged-in user's monthly overview composed from
+     * the user, categories, budgets and transactions.
      */
     public function __invoke(Request $request): JsonResponse
     {
@@ -25,8 +25,11 @@ class DashboardController extends Controller
 
         $month = $validated['month'] ?? now()->format('Y-m');
         $monthStart = CarbonImmutable::createFromFormat('!Y-m', $month);
+        $user = $request->user();
+        $ownedByUser = fn ($query) => $query->where('user_id', $user->id);
 
         $budgets = Budget::query()
+            ->whereHas('category', $ownedByUser)
             ->with('category')
             ->withSpent()
             ->where('month', $month)
@@ -44,7 +47,7 @@ class DashboardController extends Controller
 
         $recentTransactions = Transaction::query()
             ->with('budget')
-            ->whereHas('budget', fn ($query) => $query->where('month', $month))
+            ->whereHas('budget', fn ($query) => $query->where('month', $month)->whereHas('category', $ownedByUser))
             ->orderByDesc('occurred_on')
             ->orderByDesc('id')
             ->limit(5)
@@ -53,6 +56,11 @@ class DashboardController extends Controller
         return response()->json([
             'data' => [
                 'month' => $month,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'role' => $user->role,
+                ],
                 'summary' => [
                     'income' => $income,
                     'expenses' => [
@@ -60,7 +68,7 @@ class DashboardController extends Controller
                         'remaining' => round($expenses['budgeted'] - $expenses['actual'], 2),
                     ],
                     'net_balance' => round($income['actual'] - $expenses['actual'], 2),
-                    'categories_count' => Category::count(),
+                    'categories_count' => $user->categories()->count(),
                     'budgets_count' => $budgets->count(),
                     'exceeded_budgets_count' => $budgets->filter(
                         fn (Budget $b) => $b->category->type === CategoryType::Expense && $b->spentAmount() > (float) $b->amount

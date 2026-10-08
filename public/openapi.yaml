@@ -15,16 +15,44 @@ info:
     * Lists are paginated (`page`, `per_page`) and return `links` + `meta`.
     * Every resource contains hypermedia `_links` (self, update, delete, parent, children).
     * `PUT` replaces a resource (omitted optional fields become `null`), `PATCH` updates only the sent fields.
+
+    ## Authentication (JWT)
+
+    1. `POST /auth/login` (or `/auth/register`) returns a short-lived **access token** (JWT, 15 min) in the body
+       and sets a long-lived **refresh token** (7 days) in the `finplan_refresh` cookie (`HttpOnly`, `SameSite=Strict`,
+       `Secure` in production, path `/api/v1/auth`).
+    2. Send the access token in every request: `Authorization: Bearer <access_token>`.
+    3. When it expires (401), call `POST /auth/refresh`: the cookie is exchanged for a new access token and a new refresh token (rotation).
+    4. `POST /auth/logout` revokes the session: both the refresh token and the access tokens of the session stop working.
+
+    The access token is signed with HS256 and contains the claims `sub` (user ID), `role`, `name`, `sid` (session), `iat`, `nbf`, `exp`, `jti`, `iss`, `typ`.
+    If two-factor authentication is enabled, `/auth/login` returns a `two_factor_token`, which is exchanged for tokens at `/auth/two-factor/challenge` together with a TOTP code.
+
+    ## Roles
+
+    | Role | How | Access |
+    |------|-----|--------|
+    | guest | no token | API root, register, login, refresh |
+    | member | `role: member` | own categories, budgets, transactions and dashboard |
+    | admin | `role: admin` | everything a member can + `/users`; can **view and delete** (not edit) any user's data |
+
+    Accessing another user's resource returns **403**, a missing/invalid/expired token returns **401**.
 servers:
   - url: http://localhost:8000/api/v1
-    description: Local development
+    description: Local development (php artisan serve)
+  - url: http://localhost:8080/api/v1
+    description: Docker (docker compose up)
 
-# Lab 1 has no authentication; JWT bearer auth is added in lab 2.
-security: []
+security:
+  - bearerAuth: []
 
 tags:
   - name: Root
     description: API entry point.
+  - name: Auth
+    description: Registration, login, token refresh, logout and two-factor authentication.
+  - name: Users
+    description: User management (admin only).
   - name: Categories
     description: Income and expense categories (top of the hierarchy).
   - name: Budgets
@@ -39,8 +67,9 @@ paths:
     get:
       tags: [Root]
       summary: API entry point
-      description: Returns links to the top-level resources.
+      description: Returns links to the top-level resources. Public.
       operationId: getApiRoot
+      security: []
       responses:
         '200':
           description: Entry point links
@@ -51,17 +80,341 @@ paths:
                 version: v1
                 _links:
                   self: { href: http://localhost:8000/api/v1, method: GET }
+                  register: { href: http://localhost:8000/api/v1/auth/register, method: POST }
+                  login: { href: http://localhost:8000/api/v1/auth/login, method: POST }
+                  refresh: { href: http://localhost:8000/api/v1/auth/refresh, method: POST }
+                  me: { href: http://localhost:8000/api/v1/auth/me, method: GET }
                   categories: { href: http://localhost:8000/api/v1/categories, method: GET }
                   create_category: { href: http://localhost:8000/api/v1/categories, method: POST }
                   dashboard: { href: http://localhost:8000/api/v1/dashboard, method: GET }
+                  users: { href: http://localhost:8000/api/v1/users, method: GET }
                   documentation: { href: http://localhost:8000/docs, method: GET }
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register (guest)
+      description: Creates a **member** account (a `role` in the body is ignored) and logs it in.
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterInput' }
+            example: { name: Petras Petraitis, email: petras@example.com, password: Slaptas123, password_confirmation: Slaptas123 }
+      responses:
+        '201':
+          description: Account created, tokens issued
+          headers:
+            Set-Cookie: { $ref: '#/components/headers/RefreshCookie' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
+              example:
+                message: An account with this email already exists. (and 1 more error)
+                errors:
+                  email: [An account with this email already exists.]
+                  password: [The password field must be at least 8 characters.]
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in (guest)
+      description: |
+        Returns an access token and sets the refresh token cookie.
+        If the user has 2FA enabled, no tokens are issued yet: the response contains `two_factor_required: true`
+        and a `two_factor_token` (valid 5 min) for `POST /auth/two-factor/challenge`.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginInput' }
+            examples:
+              member: { value: { email: jonas@finplan.lt, password: Jonas12345 } }
+              admin: { value: { email: admin@finplan.lt, password: Admin12345 } }
+      responses:
+        '200':
+          description: Logged in, or 2FA code required
+          headers:
+            Set-Cookie: { $ref: '#/components/headers/RefreshCookie' }
+          content:
+            application/json:
+              schema:
+                anyOf:
+                  - $ref: '#/components/schemas/TokenResponse'
+                  - $ref: '#/components/schemas/TwoFactorRequired'
+              examples:
+                tokens:
+                  summary: Logged in
+                  value:
+                    token_type: Bearer
+                    access_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwMDAiLCJzdWIiOiIyIiwicm9sZSI6Im1lbWJlciJ9.signature
+                    expires_in: 900
+                    refresh_token_expires_at: '2026-10-14T11:17:36+00:00'
+                    data: { id: 2, name: Jonas Jonaitis, email: jonas@finplan.lt, role: member, two_factor_enabled: false }
+                twoFactor:
+                  summary: 2FA enabled
+                  value:
+                    two_factor_required: true
+                    two_factor_token: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+                    expires_in: 300
+                    message: Enter the 6-digit code from your authenticator app.
+        '401':
+          description: Wrong email or password
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { message: Invalid email or password. }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/two-factor/challenge:
+    post:
+      tags: [Auth]
+      summary: Log in – second step with a 2FA code (guest)
+      operationId: twoFactorChallenge
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [two_factor_token, code]
+              properties:
+                two_factor_token: { type: string }
+                code: { type: string, pattern: '^\d{6}$', example: '492039' }
+      responses:
+        '200':
+          description: Logged in
+          headers:
+            Set-Cookie: { $ref: '#/components/headers/RefreshCookie' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '401':
+          description: The two_factor_token is invalid or expired
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { message: The two-factor login token is invalid or has expired. Log in again. }
+        '422':
+          description: Wrong code
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
+              example: { message: The two-factor code is invalid., errors: { code: [The two-factor code is invalid.] } }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh the access token (guest, refresh cookie)
+      description: |
+        Exchanges the `finplan_refresh` cookie for a new access token. The refresh token is rotated:
+        a new cookie is set and the old token stops working after a 30 s grace period.
+      operationId: refreshToken
+      security: []
+      parameters:
+        - name: finplan_refresh
+          in: cookie
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: New tokens
+          headers:
+            Set-Cookie: { $ref: '#/components/headers/RefreshCookie' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '401':
+          description: Cookie missing, refresh token expired or revoked (the cookie is cleared)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example: { message: 'The refresh token is invalid, expired or revoked.' }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Log out
+      description: Revokes the session (all its refresh tokens) and clears the cookie. The access token stops working immediately.
+      operationId: logout
+      responses:
+        '204': { description: Logged out }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current user
+      operationId: getMe
+      responses:
+        '200':
+          description: The logged-in user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /auth/two-factor:
+    post:
+      tags: [Auth]
+      summary: Start enabling 2FA
+      description: Generates a TOTP secret. Show `otpauth_url` as a QR code, then confirm with a code.
+      operationId: setupTwoFactor
+      responses:
+        '200':
+          description: Secret generated
+          content:
+            application/json:
+              example:
+                secret: JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP
+                otpauth_url: otpauth://totp/FinPlan:jonas%40finplan.lt?secret=JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP&issuer=FinPlan&algorithm=SHA1&digits=6&period=30
+                message: Scan the QR code with your authenticator app and confirm with a code.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+    delete:
+      tags: [Auth]
+      summary: Disable 2FA
+      operationId: disableTwoFactor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string }
+      responses:
+        '204': { description: 2FA disabled }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /auth/two-factor/confirm:
+    post:
+      tags: [Auth]
+      summary: Confirm and enable 2FA
+      operationId: confirmTwoFactor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string, pattern: '^\d{6}$', example: '492039' }
+      responses:
+        '200':
+          description: 2FA enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /users:
+    get:
+      tags: [Users]
+      summary: List users (admin)
+      operationId: listUsers
+      parameters:
+        - name: role
+          in: query
+          schema: { $ref: '#/components/schemas/UserRole' }
+        - name: search
+          in: query
+          description: Substring of the name or email.
+          schema: { type: string, maxLength: 100 }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [name, -name, created_at, -created_at], default: name }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Paginated list of users
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /users/{userId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+        example: 2
+    get:
+      tags: [Users]
+      summary: Get a user (admin)
+      operationId: getUser
+      responses:
+        '200':
+          description: The user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [Users]
+      summary: Delete a member (admin)
+      description: Deletes the member and all of their categories, budgets and transactions. Admins (including yourself) cannot be deleted (403).
+      operationId: deleteUser
+      responses:
+        '204': { description: User deleted }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   /categories:
     get:
       tags: [Categories]
       summary: List categories
+      description: A member gets only their own categories. An admin gets all categories (with `owner`), or one user's with `user_id`.
       operationId: listCategories
       parameters:
+        - name: user_id
+          in: query
+          description: Admin only – categories of this user. A member may only pass their own ID (otherwise 403).
+          schema: { type: integer, minimum: 1 }
+          example: 2
         - name: type
           in: query
           description: Filter by category type.
@@ -92,6 +445,7 @@ paths:
               example:
                 data:
                   - id: 3
+                    user_id: 2
                     name: Maistas ir buities prekės
                     type: expense
                     description: Pirkiniai prekybos centruose, turguje ir buitinės chemijos prekės.
@@ -123,6 +477,8 @@ paths:
                 _links:
                   create: { href: http://localhost:8000/api/v1/categories, method: POST }
                   dashboard: { href: http://localhost:8000/api/v1/dashboard, method: GET }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/ValidationError' }
     post:
       tags: [Categories]
@@ -152,6 +508,7 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/Category' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '422':
           description: Validation failed
           content:
@@ -180,6 +537,8 @@ paths:
                 type: object
                 properties:
                   data: { $ref: '#/components/schemas/Category' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
     put:
       tags: [Categories]
@@ -206,6 +565,8 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/Category' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
     patch:
@@ -229,6 +590,8 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/Category' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
     delete:
@@ -238,6 +601,8 @@ paths:
       operationId: deleteCategory
       responses:
         '204': { description: Category deleted (no body) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
   /categories/{categoryId}/transactions:
@@ -259,6 +624,8 @@ paths:
         - $ref: '#/components/parameters/PerPage'
       responses:
         '200': { $ref: '#/components/responses/TransactionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
 
@@ -305,6 +672,8 @@ paths:
                       data:
                         type: array
                         items: { $ref: '#/components/schemas/Budget' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
     post:
@@ -334,6 +703,8 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/Budget' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422':
           description: Validation failed (e.g. duplicate month)
@@ -384,6 +755,8 @@ paths:
                     transactions: { href: http://localhost:8000/api/v1/categories/6/budgets/17/transactions, method: GET }
                     create_transaction: { href: http://localhost:8000/api/v1/categories/6/budgets/17/transactions, method: POST }
                     collection: { href: http://localhost:8000/api/v1/categories/6/budgets, method: GET }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
     put:
       tags: [Budgets]
@@ -408,6 +781,8 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/Budget' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
     patch:
@@ -432,6 +807,8 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/Budget' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
     delete:
@@ -441,6 +818,8 @@ paths:
       operationId: deleteBudget
       responses:
         '204': { description: Budget deleted (no body) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
   /categories/{categoryId}/budgets/{budgetId}/transactions:
@@ -464,6 +843,8 @@ paths:
         - $ref: '#/components/parameters/PerPage'
       responses:
         '200': { $ref: '#/components/responses/TransactionList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
     post:
@@ -495,6 +876,8 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/Transaction' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422':
           description: Validation failed
@@ -524,6 +907,8 @@ paths:
                 type: object
                 properties:
                   data: { $ref: '#/components/schemas/Transaction' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
     put:
       tags: [Transactions]
@@ -550,6 +935,8 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/Transaction' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
     patch:
@@ -573,6 +960,8 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/Transaction' }
         '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
     delete:
@@ -581,13 +970,15 @@ paths:
       operationId: deleteTransaction
       responses:
         '204': { description: Transaction deleted (no body) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
   /dashboard:
     get:
       tags: [Dashboard]
       summary: Monthly overview
-      description: Aggregated resource built from categories, budgets and transactions of one month.
+      description: Aggregated resource built from the logged-in user, their categories, budgets and transactions of one month.
       operationId: getDashboard
       parameters:
         - name: month
@@ -603,6 +994,7 @@ paths:
               example:
                 data:
                   month: '2026-08'
+                  user: { id: 2, name: Jonas Jonaitis, role: member }
                   summary:
                     income: { budgeted: 2100, actual: 2082.75 }
                     expenses: { budgeted: 1430, actual: 1125.21, remaining: 304.79 }
@@ -626,9 +1018,22 @@ paths:
                   previous_month: { href: http://localhost:8000/api/v1/dashboard?month=2026-07, method: GET }
                   next_month: { href: http://localhost:8000/api/v1/dashboard?month=2026-09, method: GET }
                   categories: { href: http://localhost:8000/api/v1/categories, method: GET }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '422': { $ref: '#/components/responses/ValidationError' }
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token from /auth/login, /auth/register, /auth/refresh or /auth/two-factor/challenge.
+
+  headers:
+    RefreshCookie:
+      description: 'finplan_refresh=<refresh token>; Path=/api/v1/auth; HttpOnly; SameSite=Strict; Secure (production)'
+      schema: { type: string }
+
   parameters:
     CategoryId:
       name: categoryId
@@ -694,6 +1099,38 @@ components:
       schema: { type: string, enum: [occurred_on, -occurred_on, amount, -amount], default: -occurred_on }
 
   responses:
+    Unauthorized:
+      description: Missing, invalid or expired access token, or the session was logged out
+      headers:
+        WWW-Authenticate:
+          schema: { type: string, example: Bearer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            missing: { value: { message: 'Unauthenticated. Send a valid access token in the "Authorization: Bearer <token>" header.' } }
+            expired: { value: { message: The token has expired. } }
+            loggedOut: { value: { message: The session has ended (logged out). Please log in again. } }
+    Forbidden:
+      description: The token is valid, but the role or ownership does not allow this action
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          examples:
+            notOwner: { value: { message: 'You can only view your own categories, budgets and transactions.' } }
+            notAdmin: { value: { message: 'This action requires one of the roles: admin.' } }
+    Conflict:
+      description: The action conflicts with the current state
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { message: Two-factor authentication is already enabled. }
+    TooManyRequests:
+      description: Too many attempts (10 per minute per email and IP)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { message: Too Many Attempts. }
     NotFound:
       description: Resource not found (or does not belong to the parent resource in the URL)
       content:
@@ -775,6 +1212,13 @@ components:
       type: object
       properties:
         id: { type: integer, example: 3 }
+        user_id: { type: integer, description: Owner of the category, example: 2 }
+        owner:
+          type: object
+          description: Only in admin listings
+          properties:
+            id: { type: integer, example: 2 }
+            name: { type: string, example: Jonas Jonaitis }
         name: { type: string, example: Maistas ir buities prekės }
         type: { $ref: '#/components/schemas/CategoryType' }
         description: { type: string, nullable: true }
@@ -862,6 +1306,51 @@ components:
         description: { type: string, minLength: 2, maxLength: 255 }
         merchant: { type: string, maxLength: 100, nullable: true }
         payment_method: { $ref: '#/components/schemas/PaymentMethod' }
+
+    UserRole:
+      type: string
+      enum: [member, admin]
+    User:
+      type: object
+      properties:
+        id: { type: integer, example: 2 }
+        name: { type: string, example: Jonas Jonaitis }
+        email: { type: string, format: email, example: jonas@finplan.lt }
+        role: { $ref: '#/components/schemas/UserRole' }
+        two_factor_enabled: { type: boolean, example: false }
+        categories_count: { type: integer, example: 7 }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        _links: { $ref: '#/components/schemas/Links' }
+    RegisterInput:
+      type: object
+      required: [name, email, password, password_confirmation]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 100 }
+        email: { type: string, format: email, maxLength: 255 }
+        password: { type: string, minLength: 8, description: At least 8 characters with letters and numbers }
+        password_confirmation: { type: string }
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    TokenResponse:
+      type: object
+      properties:
+        token_type: { type: string, example: Bearer }
+        access_token: { type: string, description: 'JWT (HS256), valid for expires_in seconds' }
+        expires_in: { type: integer, example: 900 }
+        refresh_token_expires_at: { type: string, format: date-time }
+        data: { $ref: '#/components/schemas/User' }
+    TwoFactorRequired:
+      type: object
+      properties:
+        two_factor_required: { type: boolean, example: true }
+        two_factor_token: { type: string }
+        expires_in: { type: integer, example: 300 }
+        message: { type: string }
 
     PaginatedResponse:
       type: object

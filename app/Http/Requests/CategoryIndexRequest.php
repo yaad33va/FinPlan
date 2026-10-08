@@ -26,6 +26,7 @@ class CategoryIndexRequest extends FormRequest
     {
         return [
             'type' => ['sometimes', Rule::enum(CategoryType::class)],
+            'user_id' => ['sometimes', 'integer', 'min:1'],
             'search' => ['sometimes', 'string', 'max:100'],
             'sort' => ['sometimes', Rule::in(self::SORTABLE)],
             'page' => ['sometimes', 'integer', 'min:1'],

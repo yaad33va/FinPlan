@@ -1,0 +1,215 @@
+/* ==========================================================================
+   Breakpoints
+   - 1024px: tablets – fewer columns
+   - 768px:  phones – hamburger menu, single column, tables become cards
+   - 480px:  small phones – tighter spacing
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+    .grid-4,
+    .budget-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboard-columns,
+    .profile-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero h1 {
+        font-size: 2.4rem;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Navigation collapses into the hamburger menu */
+    .nav-toggle {
+        display: block;
+    }
+
+    .main-nav {
+        position: absolute;
+        top: var(--header-height);
+        left: 0;
+        right: 0;
+        max-height: 0;
+        overflow: hidden;
+        background: var(--navy-900);
+        box-shadow: 0 12px 24px rgb(10 34 64 / 40%);
+        transition: max-height 0.35s var(--ease);
+    }
+
+    .nav-open .main-nav {
+        max-height: 480px;
+    }
+
+    .main-nav ul {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: var(--space-2) var(--space-5) var(--space-4);
+    }
+
+    .main-nav a,
+    .main-nav .nav-button {
+        width: 100%;
+        padding: var(--space-3);
+        border-radius: var(--radius-sm);
+        font-size: 1rem;
+    }
+
+    .main-nav .nav-cta {
+        justify-content: center;
+        margin-top: var(--space-2);
+    }
+
+    /* Single column layouts */
+    .grid-2,
+    .grid-3,
+    .hero-grid,
+    .steps-grid,
+    .auth-layout,
+    .form-row,
+    .footer-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .hero {
+        padding: var(--space-7) 0;
+        text-align: center;
+    }
+
+    .hero h1 {
+        font-size: 2rem;
+    }
+
+    .hero-lead {
+        margin: 0 auto;
+    }
+
+    .hero-actions {
+        justify-content: center;
+    }
+
+    .hero-image {
+        max-width: 380px;
+        margin: 0 auto;
+    }
+
+    .auth-aside {
+        display: none;
+    }
+
+    .auth-form {
+        padding: var(--space-6) var(--space-5);
+    }
+
+    .footer-grid {
+        gap: var(--space-5);
+        padding: var(--space-6) var(--space-5);
+    }
+
+    .site-main {
+        padding-top: var(--space-5);
+    }
+
+    h1 {
+        font-size: 1.6rem;
+    }
+
+    .toolbar .field {
+        flex: 1 1 100%;
+    }
+
+    /* Tables turn into stacked cards; each cell shows its column name (data-label) */
+    .table-wrap {
+        border: 0;
+        background: transparent;
+    }
+
+    .data-table thead {
+        display: none;
+    }
+
+    .data-table,
+    .data-table tbody,
+    .data-table tr,
+    .data-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .data-table tr {
+        margin-bottom: var(--space-3);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        padding: var(--space-2) 0;
+    }
+
+    .data-table td {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--space-4);
+        padding: var(--space-2) var(--space-4);
+        border: 0;
+        text-align: right;
+    }
+
+    .data-table td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-weight: 700;
+        text-align: left;
+    }
+
+    .data-table .actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .data-table .actions::before {
+        content: none;
+    }
+
+    .modal-footer {
+        flex-direction: column-reverse;
+    }
+
+    .modal-footer .btn {
+        width: 100%;
+    }
+
+    .toast-container {
+        right: 16px;
+        bottom: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 var(--space-4);
+    }
+
+    .grid-4,
+    .budget-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .card {
+        padding: var(--space-4);
+    }
+
+    .page-header .btn {
+        width: 100%;
+    }
+
+    .month-switcher {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
