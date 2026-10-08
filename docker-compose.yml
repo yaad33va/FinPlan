@@ -5,9 +5,11 @@ services:
     container_name: finplan-mysql
     environment:
       MYSQL_DATABASE: finplan
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      # Empty password is allowed only for local development; on a server set FINPLAN_DB_PASSWORD.
+      MYSQL_ROOT_PASSWORD: ${FINPLAN_DB_PASSWORD:-}
+      MYSQL_ALLOW_EMPTY_PASSWORD: ${FINPLAN_DB_ALLOW_EMPTY:-yes}
     ports:
-      - "3307:3306" # for local development with php artisan serve
+      - "127.0.0.1:3307:3306" # only reachable from this machine (php artisan serve)
     volumes:
       - finplan-mysql:/var/lib/mysql
     healthcheck:
@@ -23,7 +25,7 @@ services:
       mysql:
         condition: service_healthy
     ports:
-      - "8080:80"
+      - "${FINPLAN_PORT:-8080}:80"
     environment:
       APP_NAME: FinPlan
       APP_ENV: production
@@ -40,7 +42,7 @@ services:
       DB_PORT: 3306
       DB_DATABASE: finplan
       DB_USERNAME: root
-      DB_PASSWORD: ""
+      DB_PASSWORD: ${FINPLAN_DB_PASSWORD:-}
       SESSION_DRIVER: database
       CACHE_STORE: database
       LOG_CHANNEL: stderr

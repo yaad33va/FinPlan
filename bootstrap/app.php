@@ -26,6 +26,10 @@ return Application::configure(basePath: dirname(__DIR__))
             RejectMalformedJson::class,
         ]);
 
+        // Behind a reverse proxy (Caddy/Nginx with HTTPS) use its X-Forwarded-* headers,
+        // so generated links and cookies use https:// and the real client IP.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'role' => EnsureRole::class,
         ]);
