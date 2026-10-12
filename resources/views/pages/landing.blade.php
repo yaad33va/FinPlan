@@ -33,13 +33,12 @@
         <div class="container">
             <div class="section-title">
                 <h2>Viskas, ko reikia asmeniniam biudžetui</h2>
-                <p>Paprasta struktūra: kategorija → mėnesio biudžetas → operacijos.</p>
             </div>
             <div class="grid grid-3 stagger">
                 <article class="card feature-card card-hover">
                     <span class="feature-icon"><i data-lucide="folder-open"></i></span>
                     <h3>Kategorijos</h3>
-                    <p>Suskirstyk pajamas ir išlaidas: maistas, būstas, transportas, atlyginimas ir kt. Kiekviena kategorija turi savo spalvą.</p>
+                    <p>Suskirstyk pajamas ir išlaidas: maistas, būstas, transportas, atlyginimas ir kt. Kiekvienai kategorijai galima priskirti atitinkamą spalvą.</p>
                 </article>
                 <article class="card feature-card card-hover">
                     <span class="feature-icon"><i data-lucide="target"></i></span>

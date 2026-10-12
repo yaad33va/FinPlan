@@ -83,12 +83,6 @@
                 </ul>
             </div>
         </div>
-        <div class="footer-bottom">
-            <div class="container row-between">
-                <span>© {{ date('Y') }} FinPlan · Denisa Valinčiūtė, KTU</span>
-                <span>T120B165 Saityno taikomųjų programų projektavimas</span>
-            </div>
-        </div>
     </footer>
 
     {{-- Shared confirmation modal (used before every delete) --}}
