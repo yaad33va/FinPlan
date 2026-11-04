@@ -75,10 +75,8 @@
                 </ul>
             </div>
             <div>
-                <h4>Kūrėjams</h4>
+                <h4>Kontaktai</h4>
                 <ul>
-                    <li><a href="{{ route('docs') }}"><i data-lucide="book-open"></i> API dokumentacija</a></li>
-                    <li><a href="{{ url('/api/v1') }}"><i data-lucide="code-xml"></i> REST API</a></li>
                     <li><a href="mailto:info@finplan.lt"><i data-lucide="mail"></i> info@finplan.lt</a></li>
                 </ul>
             </div>
